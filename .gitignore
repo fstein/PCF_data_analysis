@@ -18,6 +18,9 @@
 # Output files from R CMD check
 /*.Rcheck/
 
+# pdf files
+*.pdf
+
 # RStudio files
 .Rproj.user/
 
@@ -51,3 +54,22 @@ po/*~
 
 # RStudio Connect folder
 rsconnect/
+
+# metadata files
+metadata.csv
+stat_comparisons.csv
+
+# data_analysis_results folder
+data_analysis_results/
+
+# spreadsheet outputs
+*.csv
+*.tsv
+
+# macOS Store files
+.DS_Store
+
+# Workspace files
+*.RData
+*.RDataTmp
+

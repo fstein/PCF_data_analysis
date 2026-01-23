@@ -2,321 +2,505 @@
 
 ## A Gentle Walk‑through of the Statistical Pipeline
 
-*This document accompanies the quantitative data you receive from the Proteomics Core Facility. It focuses on the computational steps that transform reporter‑ion intensities into lists of significantly regulated proteins, heatmaps and GO enrichments.*
+*This document accompanies the quantitative data you receive from the Proteomics Core Facility. It explains what the analysis script does, what files you receive, and how to interpret the key plots and CSV tables.*
+
+---
+
+## Quick start (if you only have 10 minutes)
+
+All outputs are written into the folder **`data_analysis_results_V1/`**.
+
+A practical order to look at results:
+
+- **QC first**
+  - `Identification_CountOverview_V1.pdf` (Figure 1)
+  - `Identification_MissingValueOverview_V1.pdf` (Figure 3)
+  - `Normalization_overview_V1.pdf` and `Normalization_overview_ratios_V1.pdf` (Figures 4–5)
+  - `PCA_analysis_V1.pdf` and `CV_overview_V1.pdf` (Figures 7–8)
+- **Then differential abundance (statistics)**
+  - `Volcano_plot_V1.pdf`, `MA_plot_V1.pdf` (Figures 9 and 12)
+  - `Limma_results_V1.csv` (main statistics table)
+- **Then biology / patterns**
+  - `Heatmap_hits_161_proteins_V1.pdf` (Figure 15)
+  - clustering plots (Figures 16–19)
+  - GO enrichment dotplots (Figures 20–21)
+
+*(Note: the text below mentions **PDF** names because this README is also used as a template for reports. In this example folder the corresponding plots are stored as high‑resolution `*.png` files.)*
 
 ---
 
 # Experimental setup
 
-In order to explain the outputs of a typical data analysis, we use an example in which we have three different biological conditions with three replicates each. Besides the WT condition, we also have two knock-out conditions. A single (single_ko) and double knockout (double_ko) condition. Each condition was measured with three biological replicates. In the single knockout, the protein SGPL1 (Sphingosine-1-phosphate lyase 1) was knocked out. In the double knockout condition SGPL1 and another protein was knocked out for which the knockout did not work. All samples were multiplexed using tandem mass tags (TMT) and combined into a single sample. This sample was offline-fractionated and measured in 12 fractions on the mass spectrometer (Thermo Scientific Orbitrap Fusion Lumos Tribrid Mass Spectrometer).
+In order to explain the outputs of a typical data analysis, we use an example with **three biological conditions** and **three biological replicates** each:
+
+- **wt** (wild-type)
+- **single_ko** (SGPL1 knock-out)
+- **double_ko** (SGPL1 knock-out + a second KO that did not work)
+
+All samples were multiplexed using tandem mass tags (TMT), combined into a single sample, offline-fractionated, and measured in 12 fractions on an Orbitrap Fusion Lumos.
 
 # Pre data analysis steps
 
-The mass-spectrometer produced raw files which contain the information of all acquired spectra (MS1 and MS2 spectra). These raw files were analyzed with FragPipe which ultimately exported one protein.tsv (tab-delimited text) file for the TMT set. This protein.tsv file was the input for the follow-up data analysis. In order to facilitate reproducible and transparent research, an R Markdown script is provided which contains all steps to enable you to reproduce the complete analysis on your own and enable you to change things as necessary. The script uses a metadata.csv file to annotate the different TMT labels to biological samples and annotates biological conditions and replicate information. Every figure and table lands inside the automatically created folder 'data_analysis_results_V1' alongside a frozen Workspace_V1.RData. Opening that RData file re‑creates the entire analysis environment, allowing advanced users to reproduce or tweak any step.
+The mass spectrometer produces raw files containing MS1 and MS2 spectra. These raw files were analyzed with FragPipe, which exported a `protein.tsv` file (tab-delimited text) as input for the downstream data analysis.
+
+For reproducibility and transparency, an R Markdown script (`TMT_analysis_1_V1.Rmd`) is provided. It uses `metadata.csv` to map TMT channels to samples, conditions, and replicate information. Every figure and table is written to `data_analysis_results_V1/` alongside a frozen `Workspace_V1.RData`.
+
+---
 
 # Data analysis
 
 ## Reading and filtering protein files
 
-The analysis script reads every file listed in `metadata.csv` and stacks them into one long table, discarding lines marked as `reverse` hits (decoy‑database matches) or `contaminants`. Only proteins supported by at least **two razor peptides** are kept. This first filter dramatically reduces false identifications. Please note that FragPipe uses the occam's razor algorithm for the protein inference step. This means that shared peptides are always annotated to only one protein with the highest number of evidence (very often this is the protein with the highest number of unique peptides).
+The analysis script reads the file(s) listed in `metadata.csv` and stacks them into one long table, discarding:
+
+- **reverse hits** (decoy matches)
+- **contaminants**
+
+Only proteins supported by at least **two razor peptides** are kept. This first filter reduces false identifications.
+
+> Note on protein inference: FragPipe uses an “Occam’s razor” strategy. Shared peptides are assigned to the protein group with the strongest evidence (often the one with the most unique peptides).
 
 ## Protein identification overview
 
-Figure 1 gives an overview over the number of identified proteins (after filtering for 2 razor peptides) for each sample. Since all samples in this experiment were multiplexed with TMT, the number of identified proteins is exactly the same. This is because the identification of a peptide from an MS2 spectrum happens independently of the absence or presence of a peptide in any individual sample as the MS2 spectrum is triggered if the MS1 precursor intensity was high enough. As this intensity is an accumulated intensity over all samples of a peptide, identification happens even if a peptide was missing completely in some samples.
+### Identification counts
+
+Figure 1 shows how many proteins remain after filtering (e.g. `Razor.Peptides >= 2`) in each sample.
 
 | ![][image1] |
 | :---- |
-| Figure 1: ProteinIdentification_CountOverview_V1.pdf file showing a bar plot representation of number of identified proteins for each sample. |
+| Figure 1: `Identification_CountOverview_V1.pdf` — number of quantified proteins per sample. |
 
-Figure 2 gives more details on which proteins have been identified in which samples in the form of an Upset plot. In such a plot, all samples are listed in the different rows. On the right side, a bar indicates the protein number for a specific combination of identifications. When the black circle is filled, it means that this sample was identified in this combination.
+**How to read Figure 1**
+
+- In a TMT experiment, all channels are measured together. Therefore counts are often similar across channels.
+- Large differences can indicate issues (sample mix-up, channel failure, very unbalanced sample load, or metadata mismatch).
+
+### UpSet plot (presence/absence across samples)
+
+Figure 2 summarizes which proteins are present across samples.
 
 | ![][image2] |
 | :---- |
-| Figure 2: ProteinIdentification_UpSet_plot_V1.pdf file showing an upset plot. |
+| Figure 2: `Identification_UpSet_plot_V1.pdf` — UpSet plot showing intersections across samples. |
 
-In this particular example, all 8149 proteins have quantitative values for all 9 samples.
+**How to read Figure 2**
 
-In case the identifications would be more diverse, the analysis also provides a heatmap (Figure 3) to explore the identification or missingness pattern.
+- Each row corresponds to a sample.
+- A vertical set of filled circles indicates a specific combination of samples.
+- The bar above that combination is the number of proteins present in exactly that combination.
+
+In this example, all **8149 proteins** have quantitative values for all 9 samples.
+
+### Missing value / identification pattern heatmap
+
+If identifications differ between samples, the analysis also provides a heatmap to explore missingness.
 
 | ![][image3] |
 | :---- |
-| Figure 3: ProteinIdentification_MissingValueOverview_V1.pdf file showing a heatmap with missing value pattern. |
+| Figure 3: `Identification_MissingValueOverview_V1.pdf` — heatmap showing missing value patterns across samples. |
 
-All proteins are listed here in the different rows and green indicates a measured quantitative value and grey would indicate a missing value. It could also happen that a peptide was identified via an MS2 spectrum but the quantified TMT intensity for one sample was so low, that the quantification would result in a zero intensity. This case would also be reported as a missing value.
+**How to read Figure 3**
+
+- Rows are proteins; columns are samples.
+- Green indicates a measured quantitative value.
+- Grey indicates a missing value.
+
+A protein may be “identified” (MS2 spectrum exists) but have reporter intensity close to zero in a specific channel; this appears as missing/zero in quantitative tables.
+
+---
 
 ## Data transformation steps
 
 ### Log2 transformation
 
-TMT intensities are log2 transformed which results in a normal distribution of these values. Due to this characteristic, classical statistical methods can be applied.
+Intensities are log2 transformed (after creating an expression set) because log2 intensities are closer to normal distributions, which is a key assumption for many statistical methods.
 
 ### Cleaning technical batch effects
 
-Even with care, subtle day‑to‑day differences in chromatography or instrument tuning can bias reporter intensities. The script therefore applies the removeBatchEffect function from the limma package, using the replicate identifier as a batch covariate.
+Subtle differences in chromatography or instrument performance can bias intensities. The script applies `removeBatchEffect()` (limma) using replicate information as a batch covariate.
 
-### Variance‑stabilising normalisation (VSN)
+### Variance‑stabilising normalization (VSN)
 
-Reporter intensities span several orders of magnitude. VSN rescales them so that technical variance becomes independent of signal size. Furthermore, the TMT intensity distributions are centered around the same median. Both points are pre‑conditions for valid p‑values.These values are the starting point for every statistical test that follows.
+Reporter intensities span orders of magnitude. VSN rescales data so that variance is less dependent on signal size and sample distributions become comparable.
 
 ### Imputation
 
-With bigger TMT sets or other methods such as label-free quantification or data independent analysis (DIA) missing values are typically observed. There are two types of missing values observed. Missing at random is the typical observed missing value pattern when measuring replicates. Picking a precursor in the MS1 spectrum for fragmentation is always depending on the intensity of the co-eluting ions and therefore a stochastic process. For these cases missing values would be imputed by similarity (e.g. by using the k-nearest neighbor (knn) method). The script would impute missing values with the knn method when a protein was identified in at least two thirds of the replicates (of a single condition for label-free or DIA data).
+In TMT datasets missing values are often rare. For LFQ/DIA, missingness is more common and imputation strategies can be applied (kNN for missing-at-random; left-censored imputation for missing-at-low-abundance). In this example, the dataset is complete after filtering.
 
-Another observed case would be missing at low abundance, e.g. if a protein is missing completely in one condition and observed in another condition. In this case, the abundance of the missing protein needs to be imputed with a low value. In case a protein was identified in less than two thirds of the replicates in a single condition, missing values are imputed with a method that estimates low abundance e.g. by imputing from left-censored distribution.
+### Setting each sample relative to its control (ctrl.ratio)
 
-### Setting every sample relative to its own control
+For intuitive visualization, the script divides each sample’s normalized intensity by the **median** of its corresponding control channels and then uses log2 ratios downstream. This creates `ctrl.ratio_*` values.
 
-Many experiments revolve around a 'treated‑versus‑control' contrast. The script therefore divides each normalised intensity by the median of its corresponding control channels, then takes log₂. This generates the ctrl.ratio columns
+---
 
 ## Inspecting the effects of data transformation
 
-### Boxplot of TMT reporter ion intensities
+### Boxplots of intensities across steps
 
-Figure 4 shows a box plot representation of the log2 TMT reporter ion intensities for each sample and how the data transformation step influenced the distributions.
+Figure 4 summarizes distributions across samples and processing steps.
 
 | ![][image4] |
 | :---- |
-| Figure 4: Normalization_overview_V1.pdf file showing boxplot of protein abundances for each data transformation step. |
+| Figure 4: `Normalization_overview_V1.pdf` — distributions across transformation steps. |
 
-On the left side with the heading "raw_reporter_intensity" the distribution of the original TMT intensities is shown. The height of the box directly correlates with the protein abundance in the respective sample.
+**How to read Figure 4**
 
-In this particular example, one could clearly see a batch-effect. The protein abundance increases from replicate 1 to replicate 3 in a similar way for each condition. This effect was removed after cleaning for batch-effects and the impact of this effect can be estimated in the middle with the heading "batchcl_reporter_intensity".
+- Each box shows the distribution of (log2) protein abundances per sample.
+- Compare the panels:
+  - **raw_reporter_intensity**: raw values
+  - **batchcl_reporter_intensity**: after batch-effect removal
+  - **norm_reporter_intensity**: after normalization
 
-Finally, the TMT distributions of all samples were normalized using variance stabilization normalization resulting in the box plot on the right under the heading "norm_reporter_intensity". Here one can clearly see that the median of each sample is nicely aligned.
+If samples show systematic shifts (e.g. rep1 < rep2 < rep3), batch correction should reduce that pattern.
 
-In case an imputation strategy would have been applied on the data, this would be visible as an additional subplot.
+### Boxplots of control ratios
 
-Figure 5 shows a box plot overview of the control ratios.
+Figure 5 shows the distribution of control ratios.
 
 | ![][image5] |
 | :---- |
-| Figure 5: Normalization_overview_ratios_V1.pdf showing boxplot representation of control ratios. |
+| Figure 5: `Normalization_overview_ratios_V1.pdf` — distributions of control ratios. |
 
-The side‑by‑side boxplots confirm that the median of every control distribution centres at zero.
+**How to read Figure 5**
 
-The data transformations have been performed on the population level. In order to be able to estimate their effects on the single protein level, a all_proteins_V1.pdf was produced. This number of pages of this pdf equals the number of filtered proteins in the data set. Figure 6 shows the respective page for SGPL1, the protein which was knocked out.
+- The median of the control condition is expected to be near **0** (because log2(1) = 0).
+- Wide distributions reflect biological variation and/or technical noise.
+
+### Example protein plot (SGPL1)
+
+For intuition, it is helpful to look at one protein across all transformation steps.
 
 | ![][image6] |
 | :---- |
-| Figure 6: all_proteins_V1.pdf file showing abundance level of each identified protein for each data transformation step. |
+| Figure 6: `all_proteins_V1.pdf` — per-protein overview across transformation steps (example shown for SGPL1). |
 
-The plot mirrors the boxplot normalization overview and shows the effect of each data transformation step on the TMT reporter ion intensity for the respective protein starting at the top with the "raw_reporter_intensity" to the bottom "norm_reporter_intensity" and the "ctrl.ratio". The conditions are indicated by different colours and replicate information is encoded into the shape of the data points. In this particular example, one could see how the variance decreases with every step. Also the decrease in the knock-out conditions is visible.
+In this example folder the script also produces a dedicated figure:
 
-For downstream statistics a single line per protein is required. Reporter intensities belonging to identical proteins are summed, and duplicate Gene symbols are resolved automatically. The result is written to "Full_dataset_V1.csv" – an Excel‑friendly spreadsheet where each column corresponds to one TMT channel and each row to a protein. The batch‑corrected intensities are stored in the wide spreadsheet with the prefix "batchcl_reporter_intensity_",  the normalised values with the prefix "norm_reporter_intensity_" and the control ratios with the prefix "ctrl.ratio_".
+- `SGPL1_protein_plot_V1.pdf` (stored as `SGPL1_protein_plot_V1.png` in `data_analysis_results_V1/`)
+
+The plot shows:
+
+- conditions as colors
+- replicates as point shapes
+- multiple panels for raw / batch-corrected / normalized / ctrl.ratio
 
 ### PCA analysis
 
-A principal component analysis is performed to judge the similarity of samples and the effect of the various data transformation steps on the raw data. Figure 7 shows a PCA plot for each of the steps that visualizes how samples cluster at each step.
+A principal component analysis (PCA) summarizes sample similarity.
 
 | ![][image7] |
 | :---- |
-| Figure 7: PCA_analysis_V1.pdf file showing results of a principal component analysis (PCA) for each data transformation step. |
+| Figure 7: `PCA_analysis_V1.pdf` — PCA at each transformation step. |
 
-The subheading indicates how much variability is explained with each principal component (PC) giving a hint about the weight of each axis. The closer the points cluster together, the higher the similarity of protein abundances. On the left, the biggest variability was observed by the batch (replicate) and the second principal component (only 3.1 % of the variability is  explained) could be neglected. After removing batch-effects, samples cluster already much better by colour which is even increased after normalization.
-The individual principal components are also saved in the table "PCA_analysis_data_V1.csv".
+**How to read Figure 7**
+
+- Each dot is a sample.
+- The closer dots are, the more similar their overall proteome profile.
+- If samples cluster by replicate rather than by condition before correction, batch effects are likely.
+
+The underlying coordinates are saved in:
+
+- `PCA_analysis_data_V1.csv`
 
 ### CV calculation
 
-The coefficient of variation (CV) gives an idea about the reproducibility of the signal across samples. It is defined as the ratio between the standard deviation to the mean. Figure 8 shows the CV in % for each data transformation step as a violin plot with a slimmed boxplot in the middle of each distribution.
+The coefficient of variation (CV) summarizes reproducibility across replicates.
 
 | ![][image8] |
 | :---- |
-| Figure 8: CV_overview_V1.pdf file showing violin plot with coefficients of variations (CVs) for each data transformation step. |
+| Figure 8: `CV_overview_V1.pdf` — CV distributions per condition and processing step. |
 
-The x-axis shows the different biological conditions as well as "all" which shows a combined CV after mixing all conditions into a single one. The biggest impact was observed after the batch-effect removal.
+**How to read Figure 8**
 
-## Differential abundance analysis
+- Lower CV generally indicates better reproducibility.
+- The “all” group mixes conditions and is therefore expected to have higher CV.
 
-The heart of the pipeline is an **empirical Bayes moderated t‑test from the limma package** that compares predefined contrasts (e.g. `double‑KO vs WT`). The model accounts for biological replicates and controls false‑discovery rate across thousands of proteins simultaneously. The t-test is moderated as it does not only take into account the standard deviation of a particular protein and the tested condition, but also the variability in the whole data set. With this, limma can make much better estimates about the probability of the observed effect.
+---
+
+## Differential abundance analysis (limma)
+
+The core test is an **empirical Bayes moderated t-test** (limma) comparing predefined contrasts (e.g. `double_ko - wt`). The model accounts for replicate information and controls FDR across thousands of proteins.
+
+The main result table is:
+
+- `Limma_results_V1.csv`
 
 ### Volcano plot
 
-Figure 9 shows a volcano plot for the various statistical tests.
-
 | ![][image9] |
 | :---- |
-| Figure 9: Volcano_plot_V1.pdf file. |
+| Figure 9: `Volcano_plot_V1.pdf` — log2 fold-change vs significance. |
 
-A volcano-plot displays the fold-change on the x-axis against the negative log10 of the pvalue on the yaxis.In the example "single_ko vs wt", proteins on the right side of the plot are more abundant in the single_ko condition and proteins on the left side are more abundant in the wt condition. A statistical test could be seen as calculating a ratio (single_ko / wt) and giving each observed ratio a probability to be observed if one would expect no difference. Proteins are annotated according to their statistical significance and fold-change into three classes: hits, candidates and no hits. They are labelled **hit** if the false discovery rate (FDR) ≤ 0.05 and |log₂FC| ≥ 1.0 (two‑fold); **candidate** if FDR ≤ 0.2 and |log₂FC| ≥ 0.58 (1.5‑fold). These thresholds are also printed in the lower right corner of the plot.
+**How to read Figure 9**
 
-The comparison "(double_ko vs wt) against (single_ko vs wt)" is a statistical comparison of two ratios (double_ko / wt and single_ko / wt). As the wt condition appears two times in the denominator it cancels out mathematically and essentially the ratio of ratio comparison boils down to double_ko vs single_ko. Therefore, this volcano plot looks identical to the volcano plot of "double_ko vs single_ko".
+- X-axis: **log2 fold-change** (positive = higher in numerator of the contrast).
+- Y-axis: **-log10(p-value)** (higher = more significant).
+- Points are colored by hit class:
+  - **hit**: FDR ≤ 0.05 and |FC| ≥ 1.5
+  - **candidate**: FDR ≤ 0.2 and |FC| ≥ 1.5
 
 ### Fold-change correlation plot
 
-Since comparisons of two ratios are difficult to imagine, the analysis also added a correlation plot of these fold-changes. Figure 10 shows such a correlation plot.
+A ratio-of-ratios comparison can be easier to interpret as a correlation of two fold-changes.
 
 | ![][image10] |
 | :---- |
-| Figure 10: Fold_change_correlation_V1.pdf file. |
-
-Now the two ratios of the are plotted on the different axis on the plot. The hit annotation is identical to the one shown in the volcano plot. The fold-change shown in the volcano-plot corresponds to the distance to the diagonal in this correlation plot. Such a correlation plot makes it much easier to compare the effect of the two ko conditions compared to the wt condition. Proteins on the diagonal show a similar change between the two ratios. Proteins on the different axis show a specific effect with only one ko condition. In this particular example, one could observe even an anti-correlation. When a protein is upregulated in one ko condition, it would be downregulated in the other ko condition.
-
-Figure 11 shows the same fold-change correlation plot. However, now the proteins are coloured by the observed hit annotation for each comparison separately.
+| Figure 10: `Fold_change_correlation_V1.pdf` — correlation of fold-changes from two contrasts. |
 
 | ![][image11] |
 | :---- |
-| Figure 11: Fold_change_correlation_alt_hit_class_V1.pdf file. |
+| Figure 11: `Fold_change_correlation_alt_hit_class_V1.pdf` — same plot, colored by hit annotations per comparison. |
 
-For example the purple dots would show a significant difference in the single_ko vs wt comparison as well as in the double_ko vs wt comparison. On the lower left, one could observe SGPL1, the protein which was knocked-down in both ko conditions.
-
-### MA-plot
-
-Figure 12 shows an MA plot that displays the log2 of the fold-change on the y-axis vs the average TMT reporter ion intensity on the x-axis.
+### MA plot
 
 | ![][image12] |
 | :---- |
-| Figure 12: MA_plot_V1.pdf file. |
+| Figure 12: `MA_plot_V1.pdf` — fold-change vs average abundance. |
 
-The MA-plot enables checking for dependencies of the fold-changes on the protein abundances. A protein on the right side is more abundant compared to a protein on the left side of the plot. MA-plots are particularly helpful for IP experiments. Here a protein with a high abundance might also have a high pulldown efficiency. Therefore, one could potentially use the observed intensity of a protein also as a filtering criterion in case the analysis would reveal too many significantly regulated proteins.
+**How to read Figure 12**
 
-### t-value vs fdr
+- X-axis: average abundance (log scale).
+- Y-axis: log2 fold-change.
+- This plot helps detect abundance-dependent artifacts (often low-abundance proteins show higher noise).
 
-A good way to see how well the statistical test was able to identify regulated proteins is the plot below. It shows the absolute t-value on the x-axis and the corresponding false discovery rate on the y-axis.
+Additional plot in the results folder (useful for IP-style experiments):
+
+- `MA_Total.Intensity_plot_V1.pdf` (stored as `MA_Total.Intensity_plot_V1.png`) — fold-change vs overall protein abundance proxy (`Total.Intensity`).
+
+### t-value vs FDR and p-value histogram
 
 | ![][image13] |
 | :---- |
-| Figure 13: t_vs_fdr_limma_vs_fdrtool_V1.pdf file. |
-
-The t-value is an output of the limma analysis and is an effect size telling how many standard deviations a fold-change lies above the mean fold-change. The quicker the curve approaches zero, the easier it was to distinguish significant proteins in the test. Limma uses the t-values to estimate the fdr. In this process limma assumes that the t-value distribution follows a normal distribution. However, this might not always be the case, especially for ratio of ratio comparisons. Therefore, also an alternative method is used to estimate the fdr from the t-value outputs which is a package called 'fdrtool'. The 'fdrtool' package renormalizes the t-value distribution and does the fdr estimation again. Therefore, it's fdr estimates might are sometimes better suitable to identify significantly changing proteins. In this particular case, the blue curve (limma) approaches the zero fdr line quicker than the orange (fdrtool) curve and limma gives lower fdr estimates for a given t-value. Both fdr estimates of limma and fdrtool are reported in the limma_results output csv. The analysis would use the limma estimate for normal comparisons and the decides to use either fdrtool or limma fdr estimates for ratio of ratio comparisons depending on the method with the higher number of hits.
-
-### p-value histogram
-
-It might also be very informative to have a look at the p-value histogram of a statistical test as shown Figure 14.
+| Figure 13: `t_vs_fdr_limma_vs_fdrtool_V1.pdf` — relationship between t-statistics and estimated FDR. |
 
 | ![][image14] |
 | :---- |
-| Figure 14: p-value_histogram_limma_vs_fdrtool_V1.pdf file. |
+| Figure 14: `p-value_histogram_limma_vs_fdrtool_V1.pdf` — p-value distributions. |
 
-The following blog post gives a nice overview of the different learnings one can get when looking at these histograms: http://varianceexplained.org/statistics/interpreting-pvalue-histogram/
+---
 
-## Heatmaps
+## Heatmaps and clustering
 
-Figure 15 shows a heatmap of all proteins that have been classified as either hit or candidate in the differential abundance analysis. The heatmap displays the median 'ctrl-ratio' which has been calculated earlier as the fold-change of each observed normalized TMT reporter ion intensity divided by the median value in the control condition (in this case the 'wt' condition).
+### Heatmap of regulated proteins
 
 | ![][image15] |
 | :---- |
-| Figure 15: Heatmap_hits_165_proteins_V1.pdf |
+| Figure 15: `Heatmap_hits_161_proteins_V1.pdf` — heatmap of hit/candidate proteins (median ctrl.ratio per condition). |
 
-The heatmap groups proteins with a similar abundance pattern and displays them in close proximity. When zooming into the plot, it is possible to read the Gene names at the y-axis. In order to also cluster the proteins into different groups and identify which proteins behave similarly, the first step is to identify the number of clustering groups.
+**How to read Figure 15**
 
-A very simple helper plot to identify the optimal number of clusters is the Elbow plot displayed in Figure 16. Here the unexplained variability (y-axis) in the data set is visualized for different choices of the clustering number (x-axis).
+- Rows: proteins; columns: conditions.
+- Colors represent log2(ctrl.ratio) (relative to control).
+- This plot emphasizes *patterns* (up/down across conditions) rather than single p-values.
+
+### Choosing the number of clusters (silhouette)
 
 | ![][image16] |
 | :---- |
-| Figure 16: Clustering_Elbow_plot_165_proteins_V1.pdf file. |
+| Figure 16: `Clustering_Silhouette_plot_161_proteins_V1.pdf` — silhouette analysis for selecting cluster number. |
 
-It's called 'elbow'-plot as it tries to identify the elbow point when an increase in the number of clusters does not lead to a big reduction of the unexplained variability.
+**How to read Figure 16**
 
-Once the preferred number of clusters is identified, two clustering algorithms are used to cluster the proteins displayed in the heatmap. These algorithms are either hierarchical clustering ('hclust') or k-means clustering ('kmeans').
+- X-axis: number of clusters.
+- Y-axis: average silhouette width (higher = better separated clusters).
+- The vertical line indicates the selected cluster number (here: 6).
 
-Figure 17 shows a PCA plot in which all proteins from the heatmap are coloured by their cluster for the two clustering methods separately.
+### Clustering PCA and heatmap
 
 | ![][image17] |
 | :---- |
-| Figure 17: PCA_clustering_data_10_cluster_165_proteins_V1.pdf file. |
-
-It is also possible to zoom into this plot as each dot is labeled by their Gene name. One can also see how the two different clustering methods make different choices for certain proteins and one method might be more suitable for certain applications then the other.
-
-For each method a separate heatmap is plotted. Figure 18 shows the heatmap with the kmeans clustering output.
+| Figure 17: `PCA_clustering_data_6_cluster_161_proteins_V1.pdf` — PCA of clustered proteins, colored by cluster. |
 
 | ![][image18] |
 | :---- |
-| Figure 18: Clustering_heatmap_hits_kmeans_10_cluster_165_proteins_V1.pdf |
+| Figure 18: `Clustering_heatmap_hits_kmeans_6_cluster_161_proteins_V1.pdf` — k-means clustered heatmap. |
 
-The heatmap not not only close similar proteins close to each other but also the clustering group. The clustering group for each protein is also summarizes in the 'clustering_groups' csv file.
-
-For longitudinal data it might be helpful to display the clustered data also in a line plot. Figure 19 shows this line plot for data clustered by the kmeans algorithm.
+### Cluster trend line plots
 
 | ![][image19] |
 | :---- |
-| Figure 19: Clustering_line_plot_kmeans_10_cluster_165_proteins_V1.pdf file. |
+| Figure 19: `Clustering_line_plot_kmeans_6_cluster_161_proteins_V1.pdf` — cluster-average trends across conditions. |
 
-The blue line is the average of the cluster and the grey zone the standard error. Each cluster member is also displayed as a grey line. The subheading indicate the clustering group.
+Additional clustering outputs in `data_analysis_results_V1/` (optional but helpful):
 
-## GO term analysis
+- `Clustering_heatmap_hits_hclust_6_cluster_161_proteins_V1.pdf` (stored as `*.png`) — the same heatmap but grouped by hierarchical clustering.
+- `Clustering_line_plot_hclust_6_cluster_161_proteins_V1.pdf` (stored as `*.png`) — trend lines per hierarchical cluster.
+- `Clustering_Correlation_hclust_vs_kmeans_161_proteins_V1.png` — how the two clustering methods agree/disagree for each protein.
 
-In order to foster biological interpretation of the data, a GO analysis is performed on multiple levels. Each GO analysis is performed for cellular compartment (CC), molecular function (MF) and biological process (BP). All results which are shown in the various plots are also listed in specific csv spreadsheet outputs with details about the involved Genes, the fdr and other metrics.
+---
 
-### GO for differential abundance analysis.
+## Gene Ontology (GO) enrichment
 
-Figure 20 shows a GO analysis for the differential abundance analysis for the GO ontology molecular function. All hit and candidate proteins from each statistical test of the limma analysis are grouped into upregulated or downregulated proteins. The GO enrichment analysis is performed on each group using the clusterProfiler R package.
+GO enrichment is performed at two levels:
+
+- **Differential abundance**: hits/candidates are split by comparison and direction (up/down)
+- **Clustering**: proteins are grouped by cluster
+
+### GO for differential abundance analysis (example: MF)
 
 | ![][image20] |
 | :---- |
-| Figure 20: GO_enrichment_DE_MF_dotplot_limma_results_V1.pdf file. |
+| Figure 20: `GO_enrichment_DE_MF_dotplot_limma_results_V1.pdf` — GO enrichment for differential abundance results. |
 
-The dotplot indicates a significant upregulation of a specific GO category displayed in the y-axis. The colour indicates the significance and their **size the** odds ratio. This is ratio is the Gene ratio (e.g. 5/15 if 5 proteins of a group of 15 proteins belong to the respective GO term) divided by the background ratio (e.g. 50 / 6000 50 proteins out of all 6000 proteins in the data set belong to the respective GO term) and indicates how much the GO term is enriched in the specific group over background.
-
-### GO for clustering results
-
-Figure 21 gives an overview of the enriched GO terms for the specific clustering groups from kmeans clustering.
+### GO for clustering results (example: MF)
 
 | ![][image21] |
 | :---- |
-| Figure 21: GO_enrichment_cluster_MF_dotplot_kmeans_clustering_V1.pdf file. |
+| Figure 21: `GO_enrichment_cluster_MF_dotplot_kmeans_clustering_V1.pdf` — GO enrichment per cluster. |
 
-The dotplot has a similar structure as explained for Figure 20, except that the clustering group is displayed at the x-axis. If a particular clustering group is missing (e.g. cluster 5), means that there are not significant GO terms for proteins in this group.
+**How to read GO dotplots**
 
-**Files produced at this stage**
- • `ProteinIdentification_CountOverview_V1.pdf` – a bar plot showing how many proteins were detected in each replicate.
- • `ProteinIdentification_MissingValueOverview_V1.pdf` – a heat‑map that highlights missing values across samples.
- Both PDFs let you verify that each channel contributed a comparable number of identifications.
-
-### 7  Visualising global structure: PCA and clustering
-
-Principal‑component analysis reduces thousands of proteins to two axes that explain most variance. The PCA plot mentioned earlier lets you judge whether replicates cluster by biology rather than by batch.
-
-For a higher‑resolution view, all `hit` and `candidate` proteins are median‑collapsed per condition and subjected to both **hierarchical** and **k‑means** clustering. The optimal number of clusters is chosen by the `Elbow` method (`Clustering_Elbow_plot_…pdf`). Results are saved as:
-
-• `Heatmap_hits_hclust_…pdf` and `Heatmap_hits_kmeans_…pdf` – red/blue tiles that show how each cluster behaves across conditions.
- • `Clustering_line_plot_…pdf` – smoothed trend lines for every cluster.
- • `Cluster_results_…csv` – a lookup table that assigns every protein to a hclust and k‑means cluster.
+- Each dot is a GO term.
+- Color indicates significance (adjusted p-value).
+- Dot size represents enrichment strength (odds ratio / fold enrichment).
+- Always cross-check:
+  - how many genes drive a term (`Count`)
+  - which genes drive it (`geneID`)
 
 ---
 
-### 8  Functional annotation by Gene Ontology (GO)
+# CSV outputs (what they are, and what the columns mean)
 
-Lists of regulated proteins are informative, yet their biological meaning often lies in coordinated pathways. The script uses **clusterProfiler** to run over‑representation analysis against the Gene Ontology universe.
+This section documents the main `*.csv` tables in `data_analysis_results_V1/`.
 
-Separate dot plots are generated for the three GO sub‑ontologies:
+## 1) `Full_dataset_V1.csv` (main wide table)
 
-• `GO_enrichment_DE_CC_dotplot_…pdf` – Cellular Component.
- • `GO_enrichment_DE_MF_dotplot_…pdf` – Molecular Function.
- • `GO_enrichment_DE_BP_dotplot_…pdf` – Biological Process.
+**What it is**: one row per protein (Gene), with sample-level intensities at several processing stages.
 
-Analogous plots (`GO_enrichment_cluster_` …) summarise enrichment per expression cluster. Each dot's colour encodes statistical significance (‑log₁₀ p‑value) while its size reflects the odds ratio of enrichment.
+**Annotation columns**
+
+- **Gene**: gene symbol used as primary identifier.
+- **Protein.ID**: accession(s) (often UniProt).
+- **Protein.Description**: description string.
+- **Organism**: organism.
+- **found.in.files / found.in.conditions / found.in.reps**: counts of where the protein was observed.
+- **max.Unique.Peptides / max.Razor.Peptides**: identification evidence.
+- **average.Total.Intensity**: mean abundance proxy (useful for abundance-dependent QC).
+
+**Intensity column blocks (by prefix)**
+
+- **`reporter_intensity_<condition>_<rep>`**: raw reporter intensities (summed per protein).
+- **`batchcl_reporter_intensity_<condition>_<rep>`**: after batch-effect removal.
+- **`norm_reporter_intensity_<condition>_<rep>`**: after VSN normalization.
+- **`ctrl.ratio_<condition>_<rep>`**: intensity relative to the control median (used for heatmaps/clustering).
+
+## 2) `Identification_Overview_V1.csv` (presence/absence matrix)
+
+- Rows are protein identifiers (in this example: `Gene_ProteinID`-style).
+- Columns are samples (e.g. `wt_rep1`).
+- Values:
+  - **1** = present/quantified
+  - **0** = missing
+
+This table backs the UpSet plot and missingness heatmap.
+
+## 3) `PCA_analysis_data_V1.csv`
+
+Each row describes one sample in one processing layer.
+
+- **PC1, PC2, PC3**: PCA coordinates.
+- **PC1.var, PC2.var**: percent variance explained.
+- **condition, rep**: sample annotation.
+- **measurement**: raw vs batch-corrected vs normalized vs ctrl.ratio.
+
+## 4) `Limma_results_V1.csv` (main statistics table)
+
+One row per protein **per comparison**.
+
+Core statistics:
+
+- **comparison / comparison.label**: contrast tested.
+- **logFC**: log2 fold-change.
+- **AveExpr**: average abundance (log scale).
+- **t**: moderated t-statistic.
+- **pvalue.limma, fdr.limma**: limma p-value and FDR.
+- **pvalue.fdrtool, qval.fdrtool, lfdr.fdrtool**: alternative estimates (used for some comparisons).
+
+Hit labeling:
+
+- **hit_annotation_method**: whether limma or fdrtool FDR was used.
+- **pvalue, fdr**: the selected p-value/FDR.
+- **hit**: TRUE/FALSE.
+- **hit_annotation**: `hit`, `candidate`, `no hit`.
+
+## 5) `Fold_change_correlation_data_V1.csv`
+
+Data behind the fold-change correlation plots.
+
+- **x, y**: log2FCs for the two comparisons.
+- **x.label, y.label**: labels for axes.
+- **x.hit, y.hit**: hit class in each comparison.
+- **hit_annotation**: hit class in the ratio-of-ratios.
+- **hit_x_and_y**: combined category used for coloring.
+
+## 6) Clustering tables
+
+- **`Clustering_data_161_proteins_V1.csv`**: condensed matrix used for clustering/heatmaps.
+  - Columns: `double_ko`, `single_ko`, `wt` (median ctrl.ratio per condition).
+- **`Cluster_results_6_cluster_161_proteins_V1.csv`**: cluster assignments.
+  - **kmeans.cluster.group** and **hclust.cluster.group**.
+
+## 7) GO enrichment tables
+
+There are two families:
+
+- **Differential abundance GO**:
+  - `GO_enrichment_DE_CC_limma_results_V1.csv`
+  - `GO_enrichment_DE_MF_limma_results_V1.csv`
+  - `GO_enrichment_DE_BP_limma_results_V1.csv`
+
+- **Cluster GO**:
+  - `GO_enrichment_cluster_CC_kmeans_clustering_V1.csv`
+  - `GO_enrichment_cluster_MF_kmeans_clustering_V1.csv`
+  - `GO_enrichment_cluster_BP_kmeans_clustering_V1.csv`
+
+Common columns (most important ones):
+
+- **ID / Description**: GO term.
+- **GeneRatio**: “hits in term / total hits in group”.
+- **BgRatio**: “background genes in term / total background”.
+- **pvalue / p.adjust / qvalue**: enrichment significance.
+- **Count**: number of genes from your group contributing.
+- **geneID**: genes contributing to the term.
+- **odds_ratio / FoldEnrichment**: enrichment effect size.
 
 ---
 
-### 10  Interpreting the outputs
+# Methods and reproducibility
 
-- **CSV tables** hold the numerical answers (intensities, fold‑changes, cluster memberships). You can load them into Excel or any statistics package.
+- **`Methods_V1.txt`**: a copy/paste-ready description of the analysis steps and thresholds.
+- **`Workspace_V1.RData`**: a frozen R session containing all objects created by the analysis script.
 
-- **PDF figures** provide intuitive quality checks and graphical summaries – the quickest way to convince yourself (or reviewers) that the data are sound.
+---
 
-- **Methods_V1.txt** is a plain‑text narrative of the parameters and software versions used, ready to copy‑paste into the Methods section of a manuscript.
+## Questions / feedback
 
-Taken together these artefacts turn raw reporter intensities into a transparent, statistically robust map from peptide ions to biological pathways. If any step feels opaque, the core facility team is happy to walk you through the corresponding figure or code snippet.
+If any step feels unclear, please contact the Proteomics Core Facility team. If you tell us:
 
-[image1]: images/image21.png
-[image2]: images/image1.png
-[image3]: images/image2.png
-[image4]: images/image15.png
-[image5]: images/image16.png
-[image6]: images/image3.png
-[image7]: images/image20.png
-[image8]: images/image12.png
-[image9]: images/image7.png
-[image10]: images/image18.png
-[image11]: images/image6.png
-[image12]: images/image8.png
-[image13]: images/image11.png
-[image14]: images/image17.png
-[image15]: images/image19.png
-[image16]: images/image5.png
-[image17]: images/image4.png
-[image18]: images/image9.png
-[image19]: images/image10.png
-[image20]: images/image14.png
-[image21]: images/image13.png
+- which comparison you care about (e.g. `single_ko - wt`)
+- whether you care more about strong fold-changes or subtle changes
+- your downstream goal (pathway analysis, candidate list, QC)
 
+…we can help you interpret the most relevant parts quickly.
+
+[image1]: data_analysis_results_V1/Identification_CountOverview_V1.png
+[image2]: data_analysis_results_V1/Identification_UpSet_plot_V1.pdf
+[image3]: data_analysis_results_V1/Identification_MissingValueOverview_V1.png
+[image4]: data_analysis_results_V1/Normalization_overview_V1.png
+[image5]: data_analysis_results_V1/Normalization_overview_ratios_V1.png
+[image6]: data_analysis_results_V1/SGPL1_protein_plot_V1.png
+[image7]: data_analysis_results_V1/PCA_analysis_V1.png
+[image8]: data_analysis_results_V1/CV_overview_V1.png
+[image9]: data_analysis_results_V1/Volcano_plot_V1.png
+[image10]: data_analysis_results_V1/Fold_change_correlation_V1.png
+[image11]: data_analysis_results_V1/Fold_change_correlation_alt_hit_class_V1.png
+[image12]: data_analysis_results_V1/MA_plot_V1.png
+[image13]: data_analysis_results_V1/t_vs_fdr_limma_vs_fdrtool_V1.png
+[image14]: data_analysis_results_V1/p-value_histogram_limma_vs_fdrtool_V1.png
+[image15]: data_analysis_results_V1/Heatmap_hits_161_proteins_V1.png
+[image16]: data_analysis_results_V1/Clustering_Silhouette_plot_161_proteins_V1.png
+[image17]: data_analysis_results_V1/PCA_clustering_data_6_cluster_161_proteins_V1.png
+[image18]: data_analysis_results_V1/Clustering_heatmap_hits_kmeans_6_cluster_161_proteins_V1.png
+[image19]: data_analysis_results_V1/Clustering_line_plot_kmeans_6_cluster_161_proteins_V1.png
+[image20]: data_analysis_results_V1/GO_enrichment_DE_MF_dotplot_limma_results_V1.png
+[image21]: data_analysis_results_V1/GO_enrichment_cluster_MF_dotplot_kmeans_clustering_V1.png
