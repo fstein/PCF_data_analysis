@@ -74,6 +74,20 @@ In label‑free quantification, abundance is most commonly estimated from **chro
 3. **Align runs**: match the “same” peptide feature across multiple LC‑MS runs by retention time alignment (and sometimes by MS1 mass accuracy).
 4. **Summarize to proteins**: aggregate multiple peptide quantities into a protein‑level quantity (e.g., median/mean of selected peptides, sometimes after filtering to reduce interference).
 
+### Match-between-runs (feature transfer)
+
+In LFQ, a peptide can be **present** in multiple samples but still be **identified by MS2 only in some runs** (because DDA selects only a subset of precursors for fragmentation). *Match-between-runs* addresses this by transferring peptide IDs to runs where the peptide feature is visible in MS1 but lacked an MS2 identification.
+
+Conceptually, the algorithm does:
+
+1. **Retention-time alignment** across runs (so the same peptide eluting at 52.3 min in run A can be found near the corresponding time in run B).
+2. **Feature matching**: search in the target run for an MS1 feature with the same precursor m/z (within a tight tolerance) and a compatible retention time (after alignment), often also requiring similar isotope pattern/charge and good peak shape.
+3. **Transfer the identification**: if the match is confident, assign the peptide identity from the identified run to the matched feature and use its MS1 area for quantification.
+
+**Why it helps**: it can **reduce missing values** and improve the completeness of the protein × sample matrix, especially for lower-abundance peptides that are inconsistently selected for MS2.
+
+**Important caveat**: transferring IDs can introduce **false matches** if retention-time alignment is poor or if many peptides have very similar m/z. Good workflows therefore keep tolerances tight, rely on robust alignment, and may use additional scoring/quality filters to limit incorrect transfers.
+
 ### Common protein quantification strategies you may encounter
 
 Different pipelines can report slightly different “protein quantities”. All of them aim to summarize peptide evidence into a protein‑level number, but the assumptions differ. Common strategies include:
