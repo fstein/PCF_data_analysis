@@ -4,11 +4,19 @@
 
 In a **DDA‑LFQ** experiment, **each sample is measured in its own LC‑MS run**. Peptides are identified from MS/MS spectra (MS2), and peptide/protein abundance is estimated from **chromatographic signal intensities** (typically MS1 feature areas). This makes LFQ flexible and scalable, but it also means that **run‑to‑run alignment** and **missing values** are central topics in the downstream analysis.
 
+## Workflow overview
+
+| <img src="images/DDA_LFQ_workflow.png"> |
+| :---- |
+| Complete DDA‑LFQ workflow overview: from samples to a protein × sample abundance matrix |
+
+This documentation uses the same example design throughout (**9 samples** = **3 biological conditions** × **3 biological replicates**). In DDA‑LFQ, these 9 samples are **measured in 9 separate LC‑MS runs**; peptide signals are then aligned between runs and summarized to protein quantities. The most important downstream implications are **between‑run normalization**, **run‑to‑run alignment**, and typically **more missing values** (especially for low‑abundance peptides) compared to multiplexed methods.
+
 ## Experimental design
 
 In label‑free proteomics, the mass spectrometer measures samples **one after another**, so good experimental design is mostly about avoiding confounding between biology and run order.
 
-| ![][image1] |
+| <img src="images/samples_tubes.png" width="50%"> |
 | :---- |
 | Figure 1: Experimental design example used throughout this documentation: 9 samples total (3 biological conditions, shown as different colours) with 3 biological replicates per condition. |
 
@@ -22,7 +30,7 @@ The goal is simple: **differences in the output matrix should reflect biology, n
 
 When the samples arrive, intact proteins are first solubilized/linearised. Disulphide bridges are typically reduced with dithiothreitol (DTT) and irreversibly capped with iodoacetamide, ensuring that no disulphide bridges reform and that all cysteines carry a uniform +57.021 Da carbamidomethyl modification. Because bottom‑up proteomics analyses peptides rather than full‑length proteins, the denatured proteins are digested. **Trypsin** is the protease of choice because it cuts with high specificity after lysine and arginine, generating peptides in a mass range that ionises efficiently and yields predictable MS/MS fragmentation patterns (Figure 2).
 
-| ![][image2] |
+| <img src="images/digestion.png" width="50%"> |
 | :---- |
 | Figure 2: Protein digestion into peptides using a protease e.g. trypsin |
 
@@ -30,11 +38,11 @@ When the samples arrive, intact proteins are first solubilized/linearised. Disul
 
 Each digested sample is injected onto a nano‑flow C18 column connected to the mass spectrometer inlet (Figure 3). During the gradient, peptides separate by hydrophobicity and elute at characteristic retention times, producing a series of Gaussian‑like peaks in the chromatogram (Figure 4).
 
-| ![][image3] |
+| <img src="images/mass_spectrometer.png" width="50%"> |
 | :---- |
 | Figure 3: Mass spectrometer with an HPLC column. |
 
-| ![][image4] |
+| <img src="images/chromatogram.png"> |
 | :---- |
 | Figure 4: HPLC chromatogram with a specific peptide eluting from the C18 column at retention time x. |
 
@@ -42,13 +50,13 @@ Each digested sample is injected onto a nano‑flow C18 column connected to the 
 
 When peptides reach the electrospray tip they are ionised, and the instrument records a full‑scan spectrum of all ions present at that moment. This first survey scan is called **MS1** (Figure 5).
 
-| ![][image5] |
+| <img src="images/MS1_spectra.png"> |
 | :---- |
 | Figure 5: MS1 scan (survey scan) at retention time x |
 
 In **data‑dependent acquisition (DDA)** the instrument software then selects a limited number of precursor ions—typically the **most intense peaks** in MS1—for fragmentation. Each selected precursor is isolated in a narrow m/z window, accelerated and fragmented (commonly by HCD). The resulting fragments are recorded in an **MS2 spectrum** (Figure 6).
 
-| ![][image6] |
+| <img src="images/MS2_spectrum.png" width = 60%> |
 | :---- |
 | Figure 6: MS2 spectrum of a selected MS1 precursor |
 
@@ -110,16 +118,3 @@ Because samples are acquired in separate runs, the analyst needs to watch a few 
 - **Depth versus completeness trade‑off**: DDA can identify many peptides, but completeness across all samples can be limited—especially for low‑abundance proteins.
 - **Comparable sample types**: mixing very different proteomes (e.g., tissue vs plasma) within one LFQ project can increase dynamic‑range problems and worsen missingness for the less complex/less abundant class.
 
-## Complete workflow
-
-| ![][image7] |
-| :---- |
-| Complete DDA‑LFQ workflow: from samples to a protein × sample abundance matrix |
-
-[image1]: images/samples_tubes.png
-[image2]: images/digestion.png
-[image3]: images/mass_spectrometer.png
-[image4]: images/chromatogram.png
-[image5]: images/MS1_spectra.png
-[image6]: images/MS2_spectrum.png
-[image7]: images/DDA_LFQ_workflow.png
