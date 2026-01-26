@@ -107,14 +107,21 @@ Occasionally researchers are tempted to "fill" unused channels with leftover mat
 
 Keeping the input loads balanced and the channel roster relevant to the biological question ensures that every replicate is sampled with comparable depth and that the reporter ion signals fall into the linear, low‑noise region of the TMT response curve. Interpreting the resulting protein ratio matrix then becomes a question of biology rather than artefact.
 
-[image1]: images/image10.png
-[image2]: images/image11.png
-[image3]: images/image7.png
-[image4]: images/image2.png
-[image5]: images/image9.png
-[image6]: images/image5.png
-[image7]: images/image8.png
-[image8]: images/image6.png
-[image9]: images/image4.png
-[image10]: images/image1.png
-[image11]: images/image3.png
+# Complete workflow
+
+| ![][image12] |
+| :---- |
+| Complete TMT workflow:  |
+
+[image1]: images/samples_tubes.png
+[image2]: images/digestion.png
+[image3]: images/TMT_formula.png
+[image4]: images/mixed_peptides.png
+[image5]: images/mass_spectrometer.png
+[image6]: images/chromatogram.png
+[image7]: images/MS1_spectrum.png
+[image8]: images/MS2_spectrum.png
+[image9]: images/chromatogram_missing_blue.png
+[image10]: images/MS1_spectrum_missing_blue.png
+[image11]: images/MS2_spectrum_missing_blue.png
+[image12]: images/TMT_workflow.png

@@ -73,3 +73,5 @@ data_analysis_results/
 *.RData
 *.RDataTmp
 
+# workflows folder
+workflows/
