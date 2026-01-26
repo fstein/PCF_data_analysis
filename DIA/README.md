@@ -8,6 +8,10 @@ In **DIA**, each sample is still measured in its own LC‑MS run, but the key di
 
 Even though DIA is more consistent than DDA, it is still a label‑free workflow acquired across multiple runs, so good design remains essential.
 
+| ![][image1] |
+| :---- |
+| Figure 1: Experimental design example used throughout this documentation: 9 samples total (3 biological conditions, shown as different colours) with 3 biological replicates per condition. |
+
 - **Biological replicates**: We recommend at least **three** biological replicates per condition; for subtle effects or noisy systems, **four to five** replicates can markedly increase power.
 - **Randomization / blocking**: Randomize run order (or block intentionally) so conditions are distributed across the acquisition sequence.
 - **Batch awareness**: If acquisition spans multiple days, distribute conditions across days and include QC samples to monitor stability.

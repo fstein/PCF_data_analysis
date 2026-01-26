@@ -12,6 +12,8 @@ Every TMT project begins with a carefully balanced design. In the scheme shown i
 | :---- |
 | Figure 1: Simple experimental design of a TMT experiment. |
 
+In total, this example contains **9 samples**: **3 biological conditions** (different colours) with **3 biological replicates** per condition. The sections below explain how these same 9 samples are processed, measured, and turned into a quantitative protein matrix in a TMT workflow.
+
 Balanced replicate numbers give every condition identical statistical weight and ensure that any observed change reflects biology rather than unequal group sizes. As a rule of thumb we recommend at least three biological replicates; however, when the system is noisy or the anticipated effect sizes are subtle, four or even five replicates can markedly increase statistical power. Additional conditions - extra time‑points, drug doses or genotypes - may be included as long as the total sample count stays within the multiplexing capacity of the chosen tag set (6, 11 or 18 channels). If your project outgrows a single set, simply divide the replicates across multiple TMT sets, but make sure that each set contains at least one complete replicate of every condition to preserve unbiased comparisons and simplify downstream normalisation.
 
 ## Protein preparation and enzymatic digestion

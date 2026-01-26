@@ -8,6 +8,10 @@ In a **DDA‑LFQ** experiment, **each sample is measured in its own LC‑MS run*
 
 In label‑free proteomics, the mass spectrometer measures samples **one after another**, so good experimental design is mostly about avoiding confounding between biology and run order.
 
+| ![][image1] |
+| :---- |
+| Figure 1: Experimental design example used throughout this documentation: 9 samples total (3 biological conditions, shown as different colours) with 3 biological replicates per condition. |
+
 - **Biological replicates**: As a rule of thumb we recommend at least **three** biological replicates per condition; for subtle effects or noisy systems, **four to five** replicates can markedly increase power.
 - **Randomization / blocking**: Randomize sample run order (or use a blocked design) so that each condition is spread across the acquisition sequence. This reduces the risk that instrument drift or column aging mimics biology.
 - **Batch awareness**: If the project must be acquired over multiple days/batches, distribute conditions across batches and include common QC samples to monitor performance.
