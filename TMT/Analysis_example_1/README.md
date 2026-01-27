@@ -81,7 +81,7 @@ Figure 1 shows how many proteins remain after filtering (e.g. `Razor.Peptides >=
 
 Figure 2 summarizes which proteins are present across samples.
 
-| <img src="data_analysis_results_V1/Identification_UpSet_plot_V1.png" width="60%"> |
+| <img src="data_analysis_results_V1/Identification_UpSet_plot_V1.png" width="80%"> |
 | :---- |
 | Figure 2: `Identification_UpSet_plot_V1.pdf` — UpSet plot showing intersections across samples. |
 
@@ -101,7 +101,7 @@ The underlying presence/absence matrix used for the UpSet plot (and the missingn
 
 If identifications differ between samples, the analysis also provides a heatmap to explore missingness.
 
-| <img src="data_analysis_results_V1/Identification_MissingValueOverview_V1.png" width="50%"> |
+| <img src="data_analysis_results_V1/Identification_MissingValueOverview_V1.png" width="65%"> |
 | :---- |
 | Figure 3: `Identification_MissingValueOverview_V1.pdf` — heatmap showing missing value patterns across samples. |
 
@@ -169,7 +169,7 @@ If samples show systematic shifts (e.g. rep1 < rep2 < rep3), batch correction sh
 
 Figure 5 shows the distribution of control ratios.
 
-| <img src="data_analysis_results_V1/Normalization_overview_ratios_V1.png" width="50%"> |
+| <img src="data_analysis_results_V1/Normalization_overview_ratios_V1.png" width="65%"> |
 | :---- |
 | Figure 5: `Normalization_overview_ratios_V1.pdf` — distributions of control ratios. |
 
