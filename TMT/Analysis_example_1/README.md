@@ -66,7 +66,7 @@ Only proteins supported by at least **two razor peptides** are kept. This first 
 
 Figure 1 shows how many proteins remain after filtering (e.g. `Razor.Peptides >= 2`) in each sample.
 
-| ![][image1] |
+| <img src="data_analysis_results_V1/Identification_CountOverview_V1.png" width="100%"> |
 | :---- |
 | Figure 1: `Identification_CountOverview_V1.pdf` — number of quantified proteins per sample. |
 
@@ -79,7 +79,7 @@ Figure 1 shows how many proteins remain after filtering (e.g. `Razor.Peptides >=
 
 Figure 2 summarizes which proteins are present across samples.
 
-| ![][image2] |
+| <img src="data_analysis_results_V1/Identification_UpSet_plot_V1.pdf" width="100%"> |
 | :---- |
 | Figure 2: `Identification_UpSet_plot_V1.pdf` — UpSet plot showing intersections across samples. |
 
@@ -95,7 +95,7 @@ In this example, all **8149 proteins** have quantitative values for all 9 sample
 
 If identifications differ between samples, the analysis also provides a heatmap to explore missingness.
 
-| ![][image3] |
+| <img src="data_analysis_results_V1/Identification_MissingValueOverview_V1.png" width="100%"> |
 | :---- |
 | Figure 3: `Identification_MissingValueOverview_V1.pdf` — heatmap showing missing value patterns across samples. |
 
@@ -139,7 +139,7 @@ For intuitive visualization, the script divides each sample’s normalized inten
 
 Figure 4 summarizes distributions across samples and processing steps.
 
-| ![][image4] |
+| <img src="data_analysis_results_V1/Normalization_overview_V1.png" width="100%"> |
 | :---- |
 | Figure 4: `Normalization_overview_V1.pdf` — distributions across transformation steps. |
 
@@ -157,7 +157,7 @@ If samples show systematic shifts (e.g. rep1 < rep2 < rep3), batch correction sh
 
 Figure 5 shows the distribution of control ratios.
 
-| ![][image5] |
+| <img src="data_analysis_results_V1/Normalization_overview_ratios_V1.png" width="100%"> |
 | :---- |
 | Figure 5: `Normalization_overview_ratios_V1.pdf` — distributions of control ratios. |
 
@@ -170,7 +170,7 @@ Figure 5 shows the distribution of control ratios.
 
 For intuition, it is helpful to look at one protein across all transformation steps.
 
-| ![][image6] |
+| <img src="data_analysis_results_V1/SGPL1_protein_plot_V1.png" width="100%"> |
 | :---- |
 | Figure 6: `all_proteins_V1.pdf` — per-protein overview across transformation steps (example shown for SGPL1). |
 
@@ -188,7 +188,7 @@ The plot shows:
 
 A principal component analysis (PCA) summarizes sample similarity.
 
-| ![][image7] |
+| <img src="data_analysis_results_V1/PCA_analysis_V1.png" width="100%"> |
 | :---- |
 | Figure 7: `PCA_analysis_V1.pdf` — PCA at each transformation step. |
 
@@ -206,7 +206,7 @@ The underlying coordinates are saved in:
 
 The coefficient of variation (CV) summarizes reproducibility across replicates.
 
-| ![][image8] |
+| <img src="data_analysis_results_V1/CV_overview_V1.png" width="100%"> |
 | :---- |
 | Figure 8: `CV_overview_V1.pdf` — CV distributions per condition and processing step. |
 
@@ -227,7 +227,7 @@ The main result table is:
 
 ### Volcano plot
 
-| ![][image9] |
+| <img src="data_analysis_results_V1/Volcano_plot_V1.png" width="100%"> |
 | :---- |
 | Figure 9: `Volcano_plot_V1.pdf` — log2 fold-change vs significance. |
 
@@ -243,17 +243,17 @@ The main result table is:
 
 A ratio-of-ratios comparison can be easier to interpret as a correlation of two fold-changes.
 
-| ![][image10] |
+| <img src="data_analysis_results_V1/Fold_change_correlation_V1.png" width="100%"> |
 | :---- |
 | Figure 10: `Fold_change_correlation_V1.pdf` — correlation of fold-changes from two contrasts. |
 
-| ![][image11] |
+| <img src="data_analysis_results_V1/Fold_change_correlation_alt_hit_class_V1.png" width="100%"> |
 | :---- |
 | Figure 11: `Fold_change_correlation_alt_hit_class_V1.pdf` — same plot, colored by hit annotations per comparison. |
 
 ### MA plot
 
-| ![][image12] |
+| <img src="data_analysis_results_V1/MA_plot_V1.png" width="100%"> |
 | :---- |
 | Figure 12: `MA_plot_V1.pdf` — fold-change vs average abundance. |
 
@@ -269,11 +269,11 @@ Additional plot in the results folder (useful for IP-style experiments):
 
 ### t-value vs FDR and p-value histogram
 
-| ![][image13] |
+| <img src="data_analysis_results_V1/t_vs_fdr_limma_vs_fdrtool_V1.png" width="100%"> |
 | :---- |
 | Figure 13: `t_vs_fdr_limma_vs_fdrtool_V1.pdf` — relationship between t-statistics and estimated FDR. |
 
-| ![][image14] |
+| <img src="data_analysis_results_V1/p-value_histogram_limma_vs_fdrtool_V1.png" width="100%"> |
 | :---- |
 | Figure 14: `p-value_histogram_limma_vs_fdrtool_V1.pdf` — p-value distributions. |
 
@@ -283,7 +283,7 @@ Additional plot in the results folder (useful for IP-style experiments):
 
 ### Heatmap of regulated proteins
 
-| ![][image15] |
+| <img src="data_analysis_results_V1/Heatmap_hits_161_proteins_V1.png" width="100%"> |
 | :---- |
 | Figure 15: `Heatmap_hits_161_proteins_V1.pdf` — heatmap of hit/candidate proteins (median ctrl.ratio per condition). |
 
@@ -295,7 +295,7 @@ Additional plot in the results folder (useful for IP-style experiments):
 
 ### Choosing the number of clusters (silhouette)
 
-| ![][image16] |
+| <img src="data_analysis_results_V1/Clustering_Silhouette_plot_161_proteins_V1.png" width="100%"> |
 | :---- |
 | Figure 16: `Clustering_Silhouette_plot_161_proteins_V1.pdf` — silhouette analysis for selecting cluster number. |
 
@@ -307,17 +307,17 @@ Additional plot in the results folder (useful for IP-style experiments):
 
 ### Clustering PCA and heatmap
 
-| ![][image17] |
+| <img src="data_analysis_results_V1/PCA_clustering_data_6_cluster_161_proteins_V1.png" width="100%"> |
 | :---- |
 | Figure 17: `PCA_clustering_data_6_cluster_161_proteins_V1.pdf` — PCA of clustered proteins, colored by cluster. |
 
-| ![][image18] |
+| <img src="data_analysis_results_V1/Clustering_heatmap_hits_kmeans_6_cluster_161_proteins_V1.png" width="100%"> |
 | :---- |
 | Figure 18: `Clustering_heatmap_hits_kmeans_6_cluster_161_proteins_V1.pdf` — k-means clustered heatmap. |
 
 ### Cluster trend line plots
 
-| ![][image19] |
+| <img src="data_analysis_results_V1/Clustering_line_plot_kmeans_6_cluster_161_proteins_V1.png" width="100%"> |
 | :---- |
 | Figure 19: `Clustering_line_plot_kmeans_6_cluster_161_proteins_V1.pdf` — cluster-average trends across conditions. |
 
@@ -338,13 +338,13 @@ GO enrichment is performed at two levels:
 
 ### GO for differential abundance analysis (example: MF)
 
-| ![][image20] |
+| <img src="data_analysis_results_V1/GO_enrichment_DE_MF_dotplot_limma_results_V1.png" width="100%"> |
 | :---- |
 | Figure 20: `GO_enrichment_DE_MF_dotplot_limma_results_V1.pdf` — GO enrichment for differential abundance results. |
 
 ### GO for clustering results (example: MF)
 
-| ![][image21] |
+| <img src="data_analysis_results_V1/GO_enrichment_cluster_MF_dotplot_kmeans_clustering_V1.png" width="100%"> |
 | :---- |
 | Figure 21: `GO_enrichment_cluster_MF_dotplot_kmeans_clustering_V1.pdf` — GO enrichment per cluster. |
 
@@ -482,25 +482,3 @@ If any step feels unclear, please contact the Proteomics Core Facility team. If 
 - your downstream goal (pathway analysis, candidate list, QC)
 
 …we can help you interpret the most relevant parts quickly.
-
-[image1]: data_analysis_results_V1/Identification_CountOverview_V1.png
-[image2]: data_analysis_results_V1/Identification_UpSet_plot_V1.pdf
-[image3]: data_analysis_results_V1/Identification_MissingValueOverview_V1.png
-[image4]: data_analysis_results_V1/Normalization_overview_V1.png
-[image5]: data_analysis_results_V1/Normalization_overview_ratios_V1.png
-[image6]: data_analysis_results_V1/SGPL1_protein_plot_V1.png
-[image7]: data_analysis_results_V1/PCA_analysis_V1.png
-[image8]: data_analysis_results_V1/CV_overview_V1.png
-[image9]: data_analysis_results_V1/Volcano_plot_V1.png
-[image10]: data_analysis_results_V1/Fold_change_correlation_V1.png
-[image11]: data_analysis_results_V1/Fold_change_correlation_alt_hit_class_V1.png
-[image12]: data_analysis_results_V1/MA_plot_V1.png
-[image13]: data_analysis_results_V1/t_vs_fdr_limma_vs_fdrtool_V1.png
-[image14]: data_analysis_results_V1/p-value_histogram_limma_vs_fdrtool_V1.png
-[image15]: data_analysis_results_V1/Heatmap_hits_161_proteins_V1.png
-[image16]: data_analysis_results_V1/Clustering_Silhouette_plot_161_proteins_V1.png
-[image17]: data_analysis_results_V1/PCA_clustering_data_6_cluster_161_proteins_V1.png
-[image18]: data_analysis_results_V1/Clustering_heatmap_hits_kmeans_6_cluster_161_proteins_V1.png
-[image19]: data_analysis_results_V1/Clustering_line_plot_kmeans_6_cluster_161_proteins_V1.png
-[image20]: data_analysis_results_V1/GO_enrichment_DE_MF_dotplot_limma_results_V1.png
-[image21]: data_analysis_results_V1/GO_enrichment_cluster_MF_dotplot_kmeans_clustering_V1.png
