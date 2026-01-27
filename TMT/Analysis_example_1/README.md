@@ -634,13 +634,3 @@ Common columns (most important ones):
 - **`Workspace_V1.RData`**: a frozen R session containing all objects created by the analysis script.
 
 ---
-
-## Questions / feedback
-
-If any step feels unclear, please contact the Proteomics Core Facility team. If you tell us:
-
-- which comparison you care about (e.g. `single_ko - wt`)
-- whether you care more about strong fold-changes or subtle changes
-- your downstream goal (pathway analysis, candidate list, QC)
-
-…we can help you interpret the most relevant parts quickly.
