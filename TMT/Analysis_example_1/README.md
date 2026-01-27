@@ -521,7 +521,7 @@ If you want to learn the standard conventions used in the most common GO dotplot
 
 ---
 
-# CSV outputs (what they are, and what the columns mean)
+# CSV outputs
 
 This section documents the main `*.csv` tables in `data_analysis_results_V1/`.
 
