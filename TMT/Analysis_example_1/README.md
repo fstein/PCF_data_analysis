@@ -6,7 +6,7 @@
 
 ---
 
-## Quick start (if you only have 10 minutes)
+## Quick start
 
 All outputs are written into the folder **`data_analysis_results_V1/`**.
 
@@ -17,15 +17,14 @@ A practical order to look at results:
   - `Identification_MissingValueOverview_V1.pdf` (Figure 3)
   - `Normalization_overview_V1.pdf` and `Normalization_overview_ratios_V1.pdf` (Figures 4–5)
   - `PCA_analysis_V1.pdf` and `CV_overview_V1.pdf` (Figures 7–8)
+  - 'all_proteins_V1.pdf' (see Figure 6 as example output)
 - **Then differential abundance (statistics)**
   - `Volcano_plot_V1.pdf`, `MA_plot_V1.pdf` (Figures 9 and 12)
   - `Limma_results_V1.csv` (main statistics table)
 - **Then biology / patterns**
-  - `Heatmap_hits_161_proteins_V1.pdf` (Figure 15)
-  - clustering plots (Figures 16–19)
-  - GO enrichment dotplots (Figures 20–21)
-
-*(Note: the text below mentions **PDF** names because this README is also used as a template for reports. In this example folder the corresponding plots are stored as high‑resolution `*.png` files.)*
+  - `Heatmap_hits_161_proteins_V1.pdf` (Figure 16)
+  - clustering plots (Figures 17–21)
+  - GO enrichment dotplots (Figures 22–23)
 
 ---
 
@@ -41,7 +40,10 @@ All samples were multiplexed using tandem mass tags (TMT), combined into a singl
 
 # Pre data analysis steps
 
-The mass spectrometer produces raw files containing MS1 and MS2 spectra. These raw files were analyzed with FragPipe, which exported a `protein.tsv` file (tab-delimited text) as input for the downstream data analysis.
+The mass spectrometer produces raw files containing MS1 and MS2 spectra. These raw files were analyzed with FragPipe, which exported:
+
+- `protein.tsv`: the protein-level table used as input for the downstream data analysis.
+- `psm.tsv`: a peptide-spectrum match (PSM) table containing quantitative information per PSM together with the peptide sequence, potential modifications, and whether the peptide uniquely maps to a protein or is a non-unique (**razor**) peptide. In this case, the column `Mapped.Genes` also lists other proteins/genes that the peptide can map to.
 
 For reproducibility and transparency, an R Markdown script (`TMT_analysis_1_V1.Rmd`) is provided. It uses `metadata.csv` to map TMT channels to samples, conditions, and replicate information. Every figure and table is written to `data_analysis_results_V1/` alongside a frozen `Workspace_V1.RData`.
 
@@ -66,7 +68,7 @@ Only proteins supported by at least **two razor peptides** are kept. This first 
 
 Figure 1 shows how many proteins remain after filtering (e.g. `Razor.Peptides >= 2`) in each sample.
 
-| <img src="data_analysis_results_V1/Identification_CountOverview_V1.png" width="100%"> |
+| <img src="data_analysis_results_V1/Identification_CountOverview_V1.png" width="70%"> |
 | :---- |
 | Figure 1: `Identification_CountOverview_V1.pdf` — number of quantified proteins per sample. |
 
@@ -79,7 +81,7 @@ Figure 1 shows how many proteins remain after filtering (e.g. `Razor.Peptides >=
 
 Figure 2 summarizes which proteins are present across samples.
 
-| <img src="data_analysis_results_V1/Identification_UpSet_plot_V1.pdf" width="100%"> |
+| <img src="data_analysis_results_V1/Identification_UpSet_plot_V1.png" width="60%"> |
 | :---- |
 | Figure 2: `Identification_UpSet_plot_V1.pdf` — UpSet plot showing intersections across samples. |
 
@@ -91,11 +93,15 @@ Figure 2 summarizes which proteins are present across samples.
 
 In this example, all **8149 proteins** have quantitative values for all 9 samples.
 
+The underlying presence/absence matrix used for the UpSet plot (and the missingness heatmap below) is saved as:
+
+- `Identification_Overview_V1.csv` (documented later in the **CSV outputs** section)
+
 ### Missing value / identification pattern heatmap
 
 If identifications differ between samples, the analysis also provides a heatmap to explore missingness.
 
-| <img src="data_analysis_results_V1/Identification_MissingValueOverview_V1.png" width="100%"> |
+| <img src="data_analysis_results_V1/Identification_MissingValueOverview_V1.png" width="50%"> |
 | :---- |
 | Figure 3: `Identification_MissingValueOverview_V1.pdf` — heatmap showing missing value patterns across samples. |
 
@@ -129,7 +135,7 @@ In TMT datasets missing values are often rare. For LFQ/DIA, missingness is more 
 
 ### Setting each sample relative to its control (ctrl.ratio)
 
-For intuitive visualization, the script divides each sample’s normalized intensity by the **median** of its corresponding control channels and then uses log2 ratios downstream. This creates `ctrl.ratio_*` values.
+For intuitive visualization, the script divides each sample’s normalized intensity by the **median** of its corresponding control channels ('wt' in this case) and then uses log2 ratios downstream. This creates `ctrl.ratio_*` values.
 
 ---
 
@@ -153,40 +159,59 @@ Figure 4 summarizes distributions across samples and processing steps.
 
 If samples show systematic shifts (e.g. rep1 < rep2 < rep3), batch correction should reduce that pattern.
 
+**Note on batch-effect correction (best practice)**
+
+- **In this example**: there is a clear replicate/batch pattern in the raw intensities (e.g. rep1 < rep2 < rep3), and the batch-corrected view helps confirm that this structure is technical rather than biological. *(If no obvious batch pattern is present, showing the batch-corrected view can still be useful as a QC check.)*
+- **For statistical testing**: in limma-style differential analysis, batch effects are typically handled by including a **batch/replicate factor in the design matrix** (rather than pre-correcting the values). The limma documentation for `removeBatchEffect()` explicitly notes that it is **intended for visualization/clustering (PCA, heatmaps)** and **not intended for linear modelling**, where it is better to model batch in the linear model.
+- **Why we still do it in the workflow**: having a batch-corrected layer can make it easier to *see* potential batch structure, and in cases with strong batch effects it can help stabilize downstream steps that estimate global trends (e.g. normalization). For the formal differential analysis, we still model batch/replicate explicitly by including it as a factor in the `model.matrix` (design matrix) used by limma.
+
 ### Boxplots of control ratios
 
 Figure 5 shows the distribution of control ratios.
 
-| <img src="data_analysis_results_V1/Normalization_overview_ratios_V1.png" width="100%"> |
+| <img src="data_analysis_results_V1/Normalization_overview_ratios_V1.png" width="50%"> |
 | :---- |
 | Figure 5: `Normalization_overview_ratios_V1.pdf` — distributions of control ratios. |
 
 **How to read Figure 5**
 
-- The median of the control condition is expected to be near **0** (because log2(1) = 0).
+- The median of the control condition ('wt') is expected to be near **0** (because log2(1) = 0).
 - Wide distributions reflect biological variation and/or technical noise.
 
 ### Example protein plot (SGPL1)
 
 For intuition, it is helpful to look at one protein across all transformation steps.
 
-| <img src="data_analysis_results_V1/SGPL1_protein_plot_V1.png" width="100%"> |
+| <img src="data_analysis_results_V1/SGPL1_protein_plot_V1.png" width="50%"> |
 | :---- |
 | Figure 6: `all_proteins_V1.pdf` — per-protein overview across transformation steps (example shown for SGPL1). |
 
-In this example folder the script also produces a dedicated figure:
+In a full report, you may receive an “all proteins” overview (e.g. `all_proteins_V1.pdf`) that shows the same multi‑panel view for all proteins in the data set after filtering. Here we highlight **SGPL1** because it is the gene targeted in the knock‑out conditions (`single_ko` and `double_ko`).
 
-- `SGPL1_protein_plot_V1.pdf` (stored as `SGPL1_protein_plot_V1.png` in `data_analysis_results_V1/`)
+**How to read Figure 6**
 
-The plot shows:
+- **Colors**: conditions
+- **Point shapes**: replicates
+- **Panels**: raw → batch‑corrected → normalized → `ctrl.ratio`
 
-- conditions as colors
-- replicates as point shapes
-- multiple panels for raw / batch-corrected / normalized / ctrl.ratio
+### Why knock-out proteins can still show non-zero values in TMT
+
+Even in a clean knock-out, TMT often shows **non-zero quantitative values** for the KO target and typically only moderate log2 depletion (often around **-2 to -4**, depending on the dataset). Common reasons include:
+
+- **Reporter-ion background (“noise floor”)**: MS2 reporter ions are measured even when the true peptide signal is absent; low background counts (chemical/electronic noise) create a practical lower bound for ratios.
+- **Isotopic impurities / channel cross-talk**: small amounts of reporter signal can leak into neighboring channels due to isotopic impurity and the very small mass spacing between channels, adding apparent intensity even for truly absent peptides.
+- **Co-isolation interference and ratio compression**: the precursor isolation window can include other peptides that fragment together; their reporter ions add signal and compress true fold-changes toward 1 (toward “less extreme” ratios). This is the classic MS2 isobaric interference/ratio distortion mechanism.
+- **Protein inference / shared peptides**: peptides shared between proteins can be assigned to one protein group (razor peptides). If the KO gene has peptides that are shared with related proteins/isoforms, some signal can remain after protein-level aggregation.
+- **Biological residuals**: some “knock-outs” are incomplete at the protein level (residual expression, stable protein carryover, alternative isoforms), which can produce real signal above background.
+
+**Practical interpretation tip**: very negative log2 ratios are limited by the combination of background reporter signal and interference; seeing \(-2\) to \(-4\) does not automatically mean the KO failed, but it should be interpreted together with peptide-level evidence and QC.
 
 ### PCA analysis
 
-A principal component analysis (PCA) summarizes sample similarity.
+A principal component analysis (PCA) summarizes sample similarity by reducing a high‑dimensional dataset (thousands of proteins) into a few new axes called **principal components (PCs)**.
+
+- **What PCA does**: it is a mathematical method that creates new axes (PC1, PC2, …) as **linear combinations** of the original protein abundance values across samples, chosen to capture as much variance in the dataset as possible. PC1 captures the most variance; PC2 captures the next most, and so on.
+- **What you see in the plot**: each dot is a sample positioned by its scores on PC1/PC2 (and shown here for several processing layers).
 
 | <img src="data_analysis_results_V1/PCA_analysis_V1.png" width="100%"> |
 | :---- |
@@ -197,6 +222,8 @@ A principal component analysis (PCA) summarizes sample similarity.
 - Each dot is a sample.
 - The closer dots are, the more similar their overall proteome profile.
 - If samples cluster by replicate rather than by condition before correction, batch effects are likely.
+- Take the **variance explained** in the panel subtitles into account (shown as `PC1: … % var - PC2: … % var`). If PC1/PC2 explain most of the variance (e.g. in the **raw data** panel PC1 explains ~97.7% and PC2 ~1.1%), then the 2D plot is an excellent summary of the dominant structure. If PC1/PC2 explain less, separation may exist in higher PCs and distances in the PC1/PC2 view capture only part of the structure.
+- Because Figure 7 shows PCA **for multiple transformation steps**, you can also follow how the dominant structure changes: ideally, technical variation (batch/replicate effects) is reduced after correction/normalization, while biological separation (condition differences) becomes clearer.
 
 The underlying coordinates are saved in:
 
@@ -212,14 +239,26 @@ The coefficient of variation (CV) summarizes reproducibility across replicates.
 
 **How to read Figure 8**
 
-- Lower CV generally indicates better reproducibility.
-- The “all” group mixes conditions and is therefore expected to have higher CV.
+- **What CV measures**: CV is the variation across replicates relative to the mean (\(\mathrm{CV} = \mathrm{sd}/\mathrm{mean}\)); lower CV indicates more reproducible quantification.
+- **X-axis (groups)**: CV is summarized **per condition** (here: `wt`, `single_ko`, `double_ko`) and also for **`all`**, which pools samples across all conditions and therefore includes both technical and biological variability.
+- **Across processing steps**: the plot shows CV distributions for each transformation step (raw → batch-corrected → normalized → ctrl.ratio). You typically expect CV to improve after normalization/correction; the `all` group is usually higher because it mixes conditions.
 
 ---
 
 ## Differential abundance analysis (limma)
 
-The core test is an **empirical Bayes moderated t-test** (limma) comparing predefined contrasts (e.g. `double_ko - wt`). The model accounts for replicate information and controls FDR across thousands of proteins.
+The core test is performed with **limma**, which implements an **empirical Bayes moderated t-test** for each protein and each contrast (e.g. `double_ko - wt`).
+
+In simple terms, limma is like a t-test, but with an important improvement:
+
+- **Moderation / “borrowing strength”**: instead of estimating the variance of each protein completely independently (which is noisy with few replicates), limma uses information from **all proteins** to stabilize variance estimates. This shrinks very noisy standard deviations toward a common value and typically improves ranking and power.
+
+The model can include additional factors (e.g. replicate/batch) in the design matrix, and p-values are interpreted with false-discovery-rate (FDR) control across thousands of proteins. For details, see the limma introduction: [A brief introduction to limma](https://bioconductor.org/packages/release/bioc/vignettes/limma/inst/doc/intro.html).
+
+**Note on contrasts and “ratio-of-ratios”**
+
+- Sometimes you want to compare **(double_ko vs wt)** against **(single_ko vs wt)**. This is often described as a “ratio-of-ratios”.
+- Because both comparisons share the same denominator (`wt`), the `wt` cancels. So comparing `(double_ko vs wt)` against `(single_ko vs wt)` is mathematically equivalent to the direct contrast `double_ko - single_ko`.
 
 The main result table is:
 
@@ -235,21 +274,41 @@ The main result table is:
 
 - X-axis: **log2 fold-change** (positive = higher in numerator of the contrast).
 - Y-axis: **-log10(p-value)** (higher = more significant).
-- Points are colored by hit class:
-  - **hit**: FDR ≤ 0.05 and |FC| ≥ 1.5
-  - **candidate**: FDR ≤ 0.2 and |FC| ≥ 1.5
+- Direction example: for a contrast like **`single_ko vs wt`**, proteins on the **right side** (positive log2FC) are more abundant in `single_ko`, while proteins on the **left side** (negative log2FC) are more abundant in `wt` or depleted/missing in `single_ko` (e.g. the KO target **SGPL1** typically appears on the left).
+- Two thresholds are applied to classify proteins (shown in the lower-right corner of the plot):
+  - **Fold-change threshold**: |FC| ≥ 1.5 (i.e. |log2FC| ≥ log2(1.5))
+  - **FDR threshold**: proteins passing the fold-change cutoff are split into:
+    - **hit**: FDR ≤ 0.05 (more stringent)
+    - **candidate**: FDR ≤ 0.2 (less stringent)
+- Only a subset of proteins is labeled to avoid over-plotting; typically the most significant and/or biologically relevant points are annotated.
+
+**Practical note**: thresholds are a useful guide for prioritization, but don’t be a slave to them — proteins just above a cutoff (or non-significant proteins with strong prior biological evidence) can still be meaningful and worth follow-up.
 
 ### Fold-change correlation plot
 
 A ratio-of-ratios comparison can be easier to interpret as a correlation of two fold-changes.
 
-| <img src="data_analysis_results_V1/Fold_change_correlation_V1.png" width="100%"> |
+| <img src="data_analysis_results_V1/Fold_change_correlation_V1.png" width="55%"> |
 | :---- |
 | Figure 10: `Fold_change_correlation_V1.pdf` — correlation of fold-changes from two contrasts. |
 
-| <img src="data_analysis_results_V1/Fold_change_correlation_alt_hit_class_V1.png" width="100%"> |
+| <img src="data_analysis_results_V1/Fold_change_correlation_alt_hit_class_V1.png" width="55%"> |
 | :---- |
 | Figure 11: `Fold_change_correlation_alt_hit_class_V1.pdf` — same plot, colored by hit annotations per comparison. |
+
+**How to read Figures 10–11**
+
+- Each dot is a protein.
+- The **x-axis** and **y-axis** are log2 fold-changes from two different contrasts.
+- **Near the diagonal (x ≈ y)**: proteins change similarly in both contrasts.
+- **Close to the x-axis (y ≈ 0)**: proteins change mainly in the x-axis contrast (little/no change in the y-axis contrast).
+- **Close to the y-axis (x ≈ 0)**: proteins change mainly in the y-axis contrast (little/no change in the x-axis contrast).
+- **Orthogonal distance to the diagonal**: how far a point lies from the diagonal reflects the *difference* between the two fold-changes (i.e. the “ratio-of-ratios” effect). This is the same effect size that is tested in the corresponding ratio-of-ratios comparison and visualized in the associated volcano plot for that comparison.
+
+**What is the difference between Figure 10 and Figure 11?**
+
+- **Figure 10 (`Fold_change_correlation_V1`)**: shows the actual limma results for the ratio-of-ratios relationship between the two contrasts on the axes.
+- **Figure 11 (`Fold_change_correlation_alt_hit_class_V1`)**: acts like a 2D “Venn diagram”: points are colored by whether each protein is a **hit/candidate/no hit** in the *individual* x-axis and y-axis contrasts. For example, a color labeled “hit_x_and_hit_y” (often shown as a distinct color such as pink) means the protein was significant in both individual tests.
 
 ### MA plot
 
@@ -259,77 +318,176 @@ A ratio-of-ratios comparison can be easier to interpret as a correlation of two 
 
 **How to read Figure 12**
 
-- X-axis: average abundance (log scale).
-- Y-axis: log2 fold-change.
-- This plot helps detect abundance-dependent artifacts (often low-abundance proteins show higher noise).
+- X-axis: **average abundance** (A; typically the mean log-intensity across samples/conditions being compared).
+- Y-axis: **log2 fold-change** (M; log2 ratio between the two groups).
+- What to look for:
+  - **Centering**: most proteins should be roughly centered around 0 (no systematic global shift).
+  - **Noise at low abundance**: low-abundance proteins (left side) often show larger scatter (higher relative noise).
+  - **Intensity-dependent bias**: strong curvature or systematic trends of fold-changes with abundance can indicate technical bias that normalization should reduce.
 
-Additional plot in the results folder (useful for IP-style experiments):
+In this MA plot, the “average abundance” is based on the **average TMT-derived signal across all channels** that are part of the limma analysis.
 
-- `MA_Total.Intensity_plot_V1.pdf` (stored as `MA_Total.Intensity_plot_V1.png`) — fold-change vs overall protein abundance proxy (`Total.Intensity`).
+### MA plot using `Total.Intensity` (MS1-based abundance proxy)
 
-### t-value vs FDR and p-value histogram
-
-| <img src="data_analysis_results_V1/t_vs_fdr_limma_vs_fdrtool_V1.png" width="100%"> |
+| <img src="data_analysis_results_V1/MA_Total.Intensity_plot_V1.png" width="100%"> |
 | :---- |
-| Figure 13: `t_vs_fdr_limma_vs_fdrtool_V1.pdf` — relationship between t-statistics and estimated FDR. |
+| Figure 13: `MA_Total.Intensity_plot_V1.pdf` — fold-change vs `Total.Intensity` (MS1-based protein abundance proxy). |
 
-| <img src="data_analysis_results_V1/p-value_histogram_limma_vs_fdrtool_V1.png" width="100%"> |
+**How Figure 13 differs from Figure 12**
+
+- **Figure 12** uses the average abundance derived from the **TMT quantification values** used in the statistical model.
+- **Figure 13** uses `Total.Intensity`, which is based on the **total MS1 intensity** for a protein (an MS1-based abundance proxy).
+
+MA plots are also a useful way to check for **mean–variance dependency**: in some assays, low-abundance proteins show higher variance and more extreme apparent fold-changes. For well-behaved TMT datasets this is typically less pronounced than in LFQ, but the plot is still a good QC check.
+
+### Interpreting significance diagnostics
+
+#### Translating t-statistics to FDR (limma vs fdrtool)
+
+| <img src="data_analysis_results_V1/t_vs_fdr_limma_vs_fdrtool_V1.png" width="80%"> |
 | :---- |
-| Figure 14: `p-value_histogram_limma_vs_fdrtool_V1.pdf` — p-value distributions. |
+| Figure 14: `t_vs_fdr_limma_vs_fdrtool_V1.pdf` — relationship between t-statistics and estimated FDR. |
+
+**How to read Figure 14 (t-value → FDR)**
+
+This plot shows how two approaches translate the **limma t-statistic** into an estimated **false discovery rate (FDR)**.
+
+- **X-axis**: t-statistic (effect size relative to variability; larger |t| means stronger evidence).
+- **Y-axis**: estimated FDR for a given t-statistic threshold.
+- **Interpretation**: whichever curve approaches **0** faster assigns **lower FDR** to the same t-values (i.e., it is more “optimistic” for that dataset).
+
+**How to use it in practice**
+
+- If both curves are similar, the choice has little practical impact.
+- If one curve is clearly lower across the relevant t-range, that method will call **more proteins significant** at the same FDR cutoff.
+- A very large disagreement can be a signal to look closer at model assumptions and QC (e.g., outliers, batch effects, or extremely heavy-tailed noise), because FDR estimation is sensitive to how well the null/alternative separation behaves.
+
+#### P-value histogram (sanity check across thousands of tests)
+
+| <img src="data_analysis_results_V1/p-value_histogram_limma_vs_fdrtool_V1.png" width="80%"> |
+| :---- |
+| Figure 15: `p-value_histogram_limma_vs_fdrtool_V1.pdf` — p-value distributions. |
+
+**How to read Figure 15 (p-value histogram)**
+
+The p-value histogram is a quick diagnostic of whether a large set of hypothesis tests “behaved” as expected.
+
+- **Ideal/healthy pattern**: a roughly **flat background** (many null tests; p-values uniformly distributed) plus a clear **pile-up near 0** (true signal).  
+- **Mostly flat histogram**: suggests few (or no) strong differences detectable with the current design/noise level.
+- **Weird shapes** (big spike near 1, bumps in the middle, strong non-uniformity without a left peak): can indicate problems such as model mismatch, too many identical p-values, or unfiltered pathological cases.
+
+For a very clear, beginner-friendly explanation with example shapes and what they imply, see: [How to interpret a p-value histogram](http://varianceexplained.org/statistics/interpreting-pvalue-histogram/).
 
 ---
 
 ## Heatmaps and clustering
 
+Heatmaps and clustering help move from “which proteins are significant?” to “which proteins behave similarly?”.
+
+- **What heatmaps are for**: they visualize a matrix (proteins × conditions) as colors so you can quickly spot shared regulation patterns (e.g. proteins that go up in `single_ko` and down in `double_ko`).
+- **What clustering is for**: it groups proteins with similar patterns into clusters, which often correspond to shared pathways/complexes or coordinated biological programs.
+- **What is clustered here**: all proteins annotated as **hit** in the limma analysis are used as the input set for clustering.
+
 ### Heatmap of regulated proteins
 
-| <img src="data_analysis_results_V1/Heatmap_hits_161_proteins_V1.png" width="100%"> |
+| <img src="data_analysis_results_V1/Heatmap_hits_161_proteins_V1.png" width="50%"> |
 | :---- |
-| Figure 15: `Heatmap_hits_161_proteins_V1.pdf` — heatmap of hit/candidate proteins (median ctrl.ratio per condition). |
-
-**How to read Figure 15**
-
-- Rows: proteins; columns: conditions.
-- Colors represent log2(ctrl.ratio) (relative to control).
-- This plot emphasizes *patterns* (up/down across conditions) rather than single p-values.
-
-### Choosing the number of clusters (silhouette)
-
-| <img src="data_analysis_results_V1/Clustering_Silhouette_plot_161_proteins_V1.png" width="100%"> |
-| :---- |
-| Figure 16: `Clustering_Silhouette_plot_161_proteins_V1.pdf` — silhouette analysis for selecting cluster number. |
+| Figure 16: `Heatmap_hits_161_proteins_V1.pdf` — heatmap of hit/candidate proteins (median ctrl.ratio per condition). |
 
 **How to read Figure 16**
 
-- X-axis: number of clusters.
-- Y-axis: average silhouette width (higher = better separated clusters).
-- The vertical line indicates the selected cluster number (here: 6).
+- **What is shown**: rows are proteins; columns are conditions. For each protein and condition, the value shown by color is the **median** `ctrl.ratio` across replicates (i.e. median log2 abundance relative to the median of the control condition, `wt`).
+- **Color meaning**:  
+  - **red** = increased abundance relative to control (positive log2 ratio)  
+  - **blue** = decreased abundance relative to control (negative log2 ratio)  
+  - values near **0** (no change vs control) appear near the neutral midpoint.
+  - **grey** values = missing values
+- **What to look for**: this plot emphasizes *patterns* (which proteins go up/down similarly across conditions) rather than single p-values. Proteins with similar patterns often belong to the same pathway/complex or reflect the same biological response.
+
+### Choosing the number of clusters (silhouette)
+
+| <img src="data_analysis_results_V1/Clustering_Silhouette_plot_161_proteins_V1.png" width="50%"> |
+| :---- |
+| Figure 17: `Clustering_Silhouette_plot_161_proteins_V1.pdf` — silhouette analysis for selecting cluster number. |
+
+**How to read Figure 17**
+
+- **X-axis**: number of clusters \(k\).
+- **Y-axis**: average silhouette width (ranges from -1 to 1). Higher values indicate clusters that are more compact internally and better separated from other clusters.
+- **Cluster selection**: we choose the \(k\) with the **highest average silhouette width** (here: **6**), indicating the best-defined cluster structure for this dataset.
 
 ### Clustering PCA and heatmap
 
-| <img src="data_analysis_results_V1/PCA_clustering_data_6_cluster_161_proteins_V1.png" width="100%"> |
-| :---- |
-| Figure 17: `PCA_clustering_data_6_cluster_161_proteins_V1.pdf` — PCA of clustered proteins, colored by cluster. |
+In this report we use two common clustering strategies:
 
-| <img src="data_analysis_results_V1/Clustering_heatmap_hits_kmeans_6_cluster_161_proteins_V1.png" width="100%"> |
+- **k-means**: directly partitions proteins into \(k\) clusters based on similarity of their condition profiles (here using Euclidean distance).
+- **Hierarchical clustering (hclust)**: builds a tree of similarities and can be “cut” into \(k\) clusters; it is also often used to order rows/columns in heatmaps (commonly with Ward.D2 linkage).
+
+These methods can yield slightly different cluster assignments. Depending on the dataset, one may capture the dominant structure better than the other.
+
+| <img src="data_analysis_results_V1/PCA_clustering_data_6_cluster_161_proteins_V1.png" width="80%"> |
 | :---- |
-| Figure 18: `Clustering_heatmap_hits_kmeans_6_cluster_161_proteins_V1.pdf` — k-means clustered heatmap. |
+| Figure 18: `PCA_clustering_data_6_cluster_161_proteins_V1.pdf` — PCA of clustered proteins, colored by cluster. |
+
+Figure 18 is useful for two reasons:
+
+- It is a PCA where **each dot is a single protein**; when zooming into the PDF you can read gene names inside the dots.
+- It helps visualize how the clustering solutions separate proteins into groups and where clusters overlap.
+
+| <img src="data_analysis_results_V1/Clustering_heatmap_hits_kmeans_6_cluster_161_proteins_V1.png" width="50%"> |
+| :---- |
+| Figure 19: `Clustering_heatmap_hits_kmeans_6_cluster_161_proteins_V1.pdf` — k-means clustered heatmap. |
+
+Figure 19 shows the clustered heatmap for the **k-means** solution. A complementary heatmap using **hierarchical clustering** is also provided as:
+
+- `Clustering_heatmap_hits_hclust_6_cluster_161_proteins_V1.pdf` (stored as `*.png`), not shown inline here to save space.
+
+| <img src="data_analysis_results_V1/Clustering_Correlation_hclust_vs_kmeans_161_proteins_V1.png" width="50%"> |
+| :---- |
+| Figure 20: `Clustering_Correlation_hclust_vs_kmeans_161_proteins_V1.pdf` — how k-means clusters map onto hierarchical clusters. |
+
+**How to interpret Figures 18–21 (clustered patterns)**
+
+- **Clustering input**: clustering is performed on the matrix of **median `ctrl.ratio` values per condition** (the same values visualized in Figure 16).
+- **k-means clustering**: proteins are assigned to \(k=6\) clusters based on similarity of their condition profiles.
+- **Hierarchical clustering for ordering**: heatmaps often use hierarchical clustering (e.g. Ward.D2 linkage) to **order** rows/columns so similar patterns appear next to each other. This ordering helps visualization and does not change the underlying protein quantification.
+- **Figure 18 (cluster PCA)**: shows how proteins (or cluster centroids) separate in a low-dimensional view when colored by cluster—clusters that are far apart represent distinct regulation patterns.
+- **Figure 20 (cluster mapping)**: shows how many proteins from each k-means cluster end up in which hierarchical cluster(s). Strong diagonal structure means the two methods agree; off-diagonal structure highlights differences.
+- **Figure 21 (trend lines)**: each line summarizes the **cluster-average** behavior across conditions, making it easy to compare patterns between clusters.
 
 ### Cluster trend line plots
 
-| <img src="data_analysis_results_V1/Clustering_line_plot_kmeans_6_cluster_161_proteins_V1.png" width="100%"> |
+| <img src="data_analysis_results_V1/Clustering_line_plot_kmeans_6_cluster_161_proteins_V1.png" width="80%"> |
 | :---- |
-| Figure 19: `Clustering_line_plot_kmeans_6_cluster_161_proteins_V1.pdf` — cluster-average trends across conditions. |
+| Figure 21: `Clustering_line_plot_kmeans_6_cluster_161_proteins_V1.pdf` — cluster-average trends across conditions (k-means). |
+
+Trend line plots are particularly useful for **longitudinal designs** (e.g. time series) where you expect smooth trajectories. In this example (3 conditions), they still provide a compact summary of each cluster’s pattern:
+
+- **Dark blue line**: cluster mean profile
+- **Grey shaded band**: standard error of the mean (SEM)
+- **Thin grey lines**: individual protein profiles for all proteins assigned to that cluster
 
 Additional clustering outputs in `data_analysis_results_V1/` (optional but helpful):
 
-- `Clustering_heatmap_hits_hclust_6_cluster_161_proteins_V1.pdf` (stored as `*.png`) — the same heatmap but grouped by hierarchical clustering.
-- `Clustering_line_plot_hclust_6_cluster_161_proteins_V1.pdf` (stored as `*.png`) — trend lines per hierarchical cluster.
-- `Clustering_Correlation_hclust_vs_kmeans_161_proteins_V1.png` — how the two clustering methods agree/disagree for each protein.
+- `Clustering_heatmap_hits_hclust_6_cluster_161_proteins_V1.pdf` (stored as `*.png`) — clustered heatmap using hierarchical clustering.
+- `Clustering_line_plot_hclust_6_cluster_161_proteins_V1.pdf` (stored as `*.png`) — cluster-average trend lines for the hierarchical clustering solution.
 
 ---
 
 ## Gene Ontology (GO) enrichment
+
+GO enrichment is performed using the **clusterProfiler** R package as an over-representation analysis (ORA). In principle, each GO term is tested with a **Fisher’s exact / hypergeometric test**: “are genes from our input list over-represented in this GO term compared to the background universe?” P-values are then adjusted for multiple testing.
+
+In the output tables/dotplots, enrichment strength is often reported as an **odds ratio / fold enrichment**, which is closely related to:
+
+- `odds_ratio` (or fold enrichment) \(\approx\) `GeneRatio / BgRatio`
+
+where `GeneRatio` is the fraction of your input genes in the term, and `BgRatio` is the fraction of background genes in the term.
+
+**Background universe**
+
+- By default, we use as background the proteins **identified in this MS experiment** (i.e. the detected proteome in your dataset), because enrichment should be interpreted relative to what was measurable.
+- For experiments with a very low number of identified proteins (e.g. strong enrichment workflows such as IP or subcellular fractions), using the experiment-specific background can become unstable. In such cases, a more generic background supported by the `clusterProfiler` annotation database is used.
 
 GO enrichment is performed at two levels:
 
@@ -338,24 +496,28 @@ GO enrichment is performed at two levels:
 
 ### GO for differential abundance analysis (example: MF)
 
-| <img src="data_analysis_results_V1/GO_enrichment_DE_MF_dotplot_limma_results_V1.png" width="100%"> |
+| <img src="data_analysis_results_V1/GO_enrichment_DE_MF_dotplot_limma_results_V1.png" width="80%"> |
 | :---- |
-| Figure 20: `GO_enrichment_DE_MF_dotplot_limma_results_V1.pdf` — GO enrichment for differential abundance results. |
+| Figure 22: `GO_enrichment_DE_MF_dotplot_limma_results_V1.pdf` — GO enrichment for differential abundance results. |
 
 ### GO for clustering results (example: MF)
 
-| <img src="data_analysis_results_V1/GO_enrichment_cluster_MF_dotplot_kmeans_clustering_V1.png" width="100%"> |
+| <img src="data_analysis_results_V1/GO_enrichment_cluster_MF_dotplot_kmeans_clustering_V1.png" width="80%"> |
 | :---- |
-| Figure 21: `GO_enrichment_cluster_MF_dotplot_kmeans_clustering_V1.pdf` — GO enrichment per cluster. |
+| Figure 23: `GO_enrichment_cluster_MF_dotplot_kmeans_clustering_V1.pdf` — GO enrichment per cluster. |
 
 **How to read GO dotplots**
 
 - Each dot is a GO term.
 - Color indicates significance (adjusted p-value).
-- Dot size represents enrichment strength (odds ratio / fold enrichment).
+- Dot size represents enrichment strength (odds ratio / fold enrichment over background).
+- For **differential abundance GO**, the input sets are **hit and candidate proteins**, split per statistical comparison into **upregulated** and **downregulated** proteins.
+- For **clustering GO**, the x-axis corresponds to the **k-means cluster group** used in the clustering/heatmap section (one GO enrichment result per cluster).
 - Always cross-check:
   - how many genes drive a term (`Count`)
   - which genes drive it (`geneID`)
+
+If you want to learn the standard conventions used in the most common GO dotplot implementations, see the `clusterProfiler`/`enrichplot` documentation (e.g. [Visualization of Functional Enrichment Result](https://yulab-smu.top/clusterProfiler-book/chapter12.html)).
 
 ---
 
