@@ -230,3 +230,5 @@ Occasionally researchers are tempted to "fill" unused channels with leftover mat
 ---
 
 Keeping the input loads balanced and the channel roster relevant to the biological question ensures that every replicate is sampled with comparable depth and that the reporter ion signals fall into the linear, low‑noise region of the TMT response curve. Interpreting the resulting protein ratio matrix then becomes a question of biology rather than artefact.
+
+---

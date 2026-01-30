@@ -38,14 +38,16 @@ In order to explain the outputs of a typical data analysis, we use an example wi
 
 All samples were multiplexed using tandem mass tags (TMT), combined into a single sample, offline-fractionated, and measured in 12 fractions on an Orbitrap Fusion Lumos.
 
-# Pre data analysis steps
+For a detailed description of TMT labeling and experimental design, see the [main TMT README](../README.md).
 
-The mass spectrometer produces raw files containing MS1 and MS2 spectra. These raw files were analyzed with FragPipe, which exported:
+# Input files for the data analysis
+
+The mass spectrometer produces raw files containing MS1 and MS2 spectra. These raw files were analyzed with FragPipe. FragPipe performs database searching against a reference FASTA file (protein sequence database). Only peptides/proteins that are present in that FASTA (plus any enabled decoys/contaminants) can be identified. Anything not represented in the database cannot be identified. FragPipe then exported:
 
 - `protein.tsv`: the protein-level table used as input for the downstream data analysis.
 - `psm.tsv`: a peptide-spectrum match (PSM) table containing quantitative information per PSM together with the peptide sequence, potential modifications, and whether the peptide uniquely maps to a protein or is a non-unique (**razor**) peptide. In this case, the column `Mapped.Genes` also lists other proteins/genes that the peptide can map to.
 
-For reproducibility and transparency, an R Markdown script (`TMT_analysis_1_V1.Rmd`) is provided. It uses `metadata.csv` to map TMT channels to samples, conditions, and replicate information. Every figure and table is written to `data_analysis_results_V1/` alongside a frozen `Workspace_V1.RData`.
+For reproducibility and transparency, an R Markdown analysis report script (`Name_P-number_V1.Rmd`) is provided. It reads the FragPipe output table(s) (e.g. `protein.tsv`) specified in `metadata.tsv`. The metadata file defines **which file(s)** and **which quantitative column(s)** are used for the analysis, and maps those column names to sample IDs, biological conditions, and replicate information. Every figure and table is written to `data_analysis_results_V1/` alongside a frozen `Workspace_V1.RData`.
 
 ---
 
@@ -74,7 +76,8 @@ Figure 1 shows how many proteins remain after filtering (e.g. `Razor.Peptides >=
 
 **How to read Figure 1**
 
-- In a TMT experiment, all channels are measured together. Therefore counts are often similar across channels.
+- The plot is a **bar chart**: each bar corresponds to one sample (one TMT channel), and the bar height is the **number of quantified proteins after filtering** (e.g. `Razor.Peptides >= 2`).
+- In a TMT experiment, all samples are measured together. Therefore it is expected to see the same number of proteins across channels.
 - Large differences can indicate issues (sample mix-up, channel failure, very unbalanced sample load, or metadata mismatch).
 
 ### UpSet plot (presence/absence across samples)
@@ -89,9 +92,9 @@ Figure 2 summarizes which proteins are present across samples.
 
 - Each row corresponds to a sample.
 - A vertical set of filled circles indicates a specific combination of samples.
-- The bar above that combination is the number of proteins present in exactly that combination.
+- The bar above that combination shows the number of proteins present exactly in that combination.
 
-In this example, all **8149 proteins** have quantitative values for all 9 samples.
+In this example, all **8149 proteins** have quantitative values for all 9 samples. This is totally expected for a TMT experiment, where multiplexing enables highly complete datasets across all channels. The UpSet plot is therefore mainly for completeness here — its real diagnostic value comes when analyzing LFQ datasets, where missing values and incomplete overlaps between samples are common.
 
 The underlying presence/absence matrix used for the UpSet plot (and the missingness heatmap below) is saved as:
 
@@ -123,15 +126,15 @@ Intensities are log2 transformed (after creating an expression set) because log2
 
 ### Cleaning technical batch effects
 
-Subtle differences in chromatography or instrument performance can bias intensities. The script applies `removeBatchEffect()` (limma) using replicate information as a batch covariate.
+Subtle differences in chromatography or instrument performance can bias intensities. The script applies `removeBatchEffect()` (limma) using replicate or MS run information as a batch covariate.
 
 ### Variance‑stabilising normalization (VSN)
 
-Reporter intensities span orders of magnitude. VSN rescales data so that variance is less dependent on signal size and sample distributions become comparable.
+Reporter intensities span orders of magnitude. Variance stabilising normalization (VSN) is applied to the untransformed, batch-corrected intensity values (after batch effect removal), as the VSN method already performs an internal log transformation. This procedure rescales the data so that variance is less dependent on signal size and sample distributions become comparable.
 
 ### Imputation
 
-In TMT datasets missing values are often rare. For LFQ/DIA, missingness is more common and imputation strategies can be applied (kNN for missing-at-random; left-censored imputation for missing-at-low-abundance). In this example, the dataset is complete after filtering.
+In TMT datasets missing values are rare. For LFQ/DIA, missingness is more common and imputation strategies can be applied (kNN for missing-at-random; left-censored imputation for missing-at-low-abundance). In this example, the dataset is complete after filtering.
 
 ### Setting each sample relative to its control (ctrl.ratio)
 
@@ -198,19 +201,19 @@ In a full report, you may receive an “all proteins” overview (e.g. `all_prot
 
 Even in a clean knock-out, TMT often shows **non-zero quantitative values** for the KO target and typically only moderate log2 depletion (often around **-2 to -4**, depending on the dataset). Common reasons include:
 
-- **Reporter-ion background (“noise floor”)**: MS2 reporter ions are measured even when the true peptide signal is absent; low background counts (chemical/electronic noise) create a practical lower bound for ratios.
+- **Reporter-ion background**: MS2 reporter ions are measured even when the true peptide signal is absent; low background counts (chemical/electronic noise) create a practical lower bound for ratios.
 - **Isotopic impurities / channel cross-talk**: small amounts of reporter signal can leak into neighboring channels due to isotopic impurity and the very small mass spacing between channels, adding apparent intensity even for truly absent peptides.
 - **Co-isolation interference and ratio compression**: the precursor isolation window can include other peptides that fragment together; their reporter ions add signal and compress true fold-changes toward 1 (toward “less extreme” ratios). This is the classic MS2 isobaric interference/ratio distortion mechanism.
 - **Protein inference / shared peptides**: peptides shared between proteins can be assigned to one protein group (razor peptides). If the KO gene has peptides that are shared with related proteins/isoforms, some signal can remain after protein-level aggregation.
 - **Biological residuals**: some “knock-outs” are incomplete at the protein level (residual expression, stable protein carryover, alternative isoforms), which can produce real signal above background.
 
-**Practical interpretation tip**: very negative log2 ratios are limited by the combination of background reporter signal and interference; seeing \(-2\) to \(-4\) does not automatically mean the KO failed, but it should be interpreted together with peptide-level evidence and QC.
+**Practical interpretation tip**: Very negative log2 ratios are limited by background reporter signal and interference; seeing values between \(-2\) and \(-4\) does not automatically mean the knock-out failed. These results should always be interpreted alongside peptide-level evidence and other QC. In general, it is difficult to definitively prove the absence of a protein by mass spectrometry.
 
 ### PCA analysis
 
 A principal component analysis (PCA) summarizes sample similarity by reducing a high‑dimensional dataset (thousands of proteins) into a few new axes called **principal components (PCs)**.
 
-- **What PCA does**: it is a mathematical method that creates new axes (PC1, PC2, …) as **linear combinations** of the original protein abundance values across samples, chosen to capture as much variance in the dataset as possible. PC1 captures the most variance; PC2 captures the next most, and so on.
+- **What PCA does**: PCA creates new axes (PC1, PC2, etc.) as combinations of the original protein abundances so that PC1 captures the most variance, PC2 the next most, and so on.
 - **What you see in the plot**: each dot is a sample positioned by its scores on PC1/PC2 (and shown here for several processing layers).
 
 | <img src="data_analysis_results_V1/PCA_analysis_V1.png" width="100%"> |
@@ -224,6 +227,8 @@ A principal component analysis (PCA) summarizes sample similarity by reducing a 
 - If samples cluster by replicate rather than by condition before correction, batch effects are likely.
 - Take the **variance explained** in the panel subtitles into account (shown as `PC1: … % var - PC2: … % var`). If PC1/PC2 explain most of the variance (e.g. in the **raw data** panel PC1 explains ~97.7% and PC2 ~1.1%), then the 2D plot is an excellent summary of the dominant structure. If PC1/PC2 explain less, separation may exist in higher PCs and distances in the PC1/PC2 view capture only part of the structure.
 - Because Figure 7 shows PCA **for multiple transformation steps**, you can also follow how the dominant structure changes: ideally, technical variation (batch/replicate effects) is reduced after correction/normalization, while biological separation (condition differences) becomes clearer.
+
+PCAs are also very informative for understanding the overall differences between conditions and give a preview of the magnitude and structure of variation you might expect in subsequent statistical comparisons. Observing how samples separate (or cluster together) in the PCA plot can help anticipate which condition contrasts are likely to show strong biological differences and which might be more subtle later in the analysis.
 
 The underlying coordinates are saved in:
 
@@ -239,7 +244,8 @@ The coefficient of variation (CV) summarizes reproducibility across replicates.
 
 **How to read Figure 8**
 
-- **What CV measures**: CV is the variation across replicates relative to the mean (\(\mathrm{CV} = \mathrm{sd}/\mathrm{mean}\)); lower CV indicates more reproducible quantification.
+- **What CV measures**: CV (coefficient of variation) is the variation across replicates relative to the mean. Lower CV indicates more reproducible quantification. In Markdown, the CV formula is easier to read if written as: `CV = sd / mean` (where `sd` is the standard deviation).  
+  **Typical range**: For well-performed TMT proteomics experiments, you generally expect CV values **in the range of ~5–20%** after normalization and quality filtering. Values outside this range may indicate technical issues or high biological variability.
 - **X-axis (groups)**: CV is summarized **per condition** (here: `wt`, `single_ko`, `double_ko`) and also for **`all`**, which pools samples across all conditions and therefore includes both technical and biological variability.
 - **Across processing steps**: the plot shows CV distributions for each transformation step (raw → batch-corrected → normalized → ctrl.ratio). You typically expect CV to improve after normalization/correction; the `all` group is usually higher because it mixes conditions.
 
@@ -247,7 +253,7 @@ The coefficient of variation (CV) summarizes reproducibility across replicates.
 
 ## Differential abundance analysis (limma)
 
-The core test is performed with **limma**, which implements an **empirical Bayes moderated t-test** for each protein and each contrast (e.g. `double_ko - wt`).
+The core test is performed with **limma**, which implements an **empirical Bayes moderated t-test** for each protein and each contrast (e.g. `double_ko - wt`). For more details and practical guidance, see the [limma user guide (PDF)](https://www.bioconductor.org/packages/devel/bioc/vignettes/limma/inst/doc/usersguide.pdf).
 
 In simple terms, limma is like a t-test, but with an important improvement:
 
@@ -276,7 +282,7 @@ The main result table is:
 - Y-axis: **-log10(p-value)** (higher = more significant).
 - Direction example: for a contrast like **`single_ko vs wt`**, proteins on the **right side** (positive log2FC) are more abundant in `single_ko`, while proteins on the **left side** (negative log2FC) are more abundant in `wt` or depleted/missing in `single_ko` (e.g. the KO target **SGPL1** typically appears on the left).
 - Two thresholds are applied to classify proteins (shown in the lower-right corner of the plot):
-  - **Fold-change threshold**: |FC| ≥ 1.5 (i.e. |log2FC| ≥ log2(1.5))
+  - **Fold-change threshold**: |FC| ≥ 1.5 (i.e. |log2FC| ≥ log2(1.5) - 50% change in abundance)
   - **FDR threshold**: proteins passing the fold-change cutoff are split into:
     - **hit**: FDR ≤ 0.05 (more stringent)
     - **candidate**: FDR ≤ 0.2 (less stringent)
@@ -374,7 +380,7 @@ The p-value histogram is a quick diagnostic of whether a large set of hypothesis
 
 - **Ideal/healthy pattern**: a roughly **flat background** (many null tests; p-values uniformly distributed) plus a clear **pile-up near 0** (true signal).  
 - **Mostly flat histogram**: suggests few (or no) strong differences detectable with the current design/noise level.
-- **Weird shapes** (big spike near 1, bumps in the middle, strong non-uniformity without a left peak): can indicate problems such as model mismatch, too many identical p-values, or unfiltered pathological cases.
+- **Weird shapes** (big spike near 1, bumps in the middle, strong non-uniformity without a left peak): can indicate problems such as model mismatch, violation of the test’s normality assumption, too many identical p-values, or unfiltered pathological cases.
 
 For a very clear, beginner-friendly explanation with example shapes and what they imply, see: [How to interpret a p-value histogram](http://varianceexplained.org/statistics/interpreting-pvalue-histogram/).
 
@@ -423,16 +429,16 @@ In this report we use two common clustering strategies:
 - **k-means**: directly partitions proteins into \(k\) clusters based on similarity of their condition profiles (here using Euclidean distance).
 - **Hierarchical clustering (hclust)**: builds a tree of similarities and can be “cut” into \(k\) clusters; it is also often used to order rows/columns in heatmaps (commonly with Ward.D2 linkage).
 
-These methods can yield slightly different cluster assignments. Depending on the dataset, one may capture the dominant structure better than the other.
+The interpretation of clustering results depends a lot on human judgment. These methods can produce slightly different cluster assignments, and determining which best captures the biological structure often relies on evaluating the biological plausibility and interpretability of the patterns they reveal in the specific dataset.
 
 | <img src="data_analysis_results_V1/PCA_clustering_data_6_cluster_161_proteins_V1.png" width="80%"> |
 | :---- |
 | Figure 18: `PCA_clustering_data_6_cluster_161_proteins_V1.pdf` — PCA of clustered proteins, colored by cluster. |
 
-Figure 18 is useful for two reasons:
+Figure 18 displays a principal component analysis (PCA) of proteins, using their `ctrl.ratio` profiles across conditions. Each point represents one protein, which enables you to visually assess how proteins with similar abundance patterns cluster in a lower-dimensional space. Key points:
 
-- It is a PCA where **each dot is a single protein**; when zooming into the PDF you can read gene names inside the dots.
-- It helps visualize how the clustering solutions separate proteins into groups and where clusters overlap.
+- **Each dot represents a protein**; zooming into the PDF reveals gene names labeled within the points.
+- The plot makes it easy to see how the clustering algorithm groups proteins, and to identify any overlap or separation between clusters.
 
 | <img src="data_analysis_results_V1/Clustering_heatmap_hits_kmeans_6_cluster_161_proteins_V1.png" width="50%"> |
 | :---- |
@@ -480,7 +486,7 @@ GO enrichment is performed using the **clusterProfiler** R package as an over-re
 
 In the output tables/dotplots, enrichment strength is often reported as an **odds ratio / fold enrichment**, which is closely related to:
 
-- `odds_ratio` (or fold enrichment) \(\approx\) `GeneRatio / BgRatio`
+- `odds_ratio` (or fold enrichment) ≈ `GeneRatio / BgRatio`
 
 where `GeneRatio` is the fraction of your input genes in the term, and `BgRatio` is the fraction of background genes in the term.
 
@@ -531,9 +537,9 @@ This section documents the main `*.csv` tables in `data_analysis_results_V1/`.
 
 **Annotation columns**
 
-- **Gene**: gene symbol used as primary identifier.
-- **Protein.ID**: accession(s) (often UniProt).
-- **Protein.Description**: description string.
+- **Gene**: gene symbol used as primary identifier (extracted from the Fasta file).
+- **Protein.ID**: accession(s), often UniProt (extracted from the Fasta file).
+- **Protein.Description**: description string (extracted from the Fasta file).
 - **Organism**: organism.
 - **found.in.files / found.in.conditions / found.in.reps**: counts of where the protein was observed.
 - **max.Unique.Peptides / max.Razor.Peptides**: identification evidence.
