@@ -1,14 +1,14 @@
 # PCF_data_analysis
-Documentation on standard data analysis provided by the Proteomics Core Facility (PCF) Heidelberg
+Documentation on standard data analysis provided by the Proteomics Core Facility (PCF) at the European Molecular Biology Laboratory (EMBL) Heidelberg
 
 ## What you will find in this repository
 
-This repository is intended as a **customer-facing tutorial** to understand proteomics acquisition concepts (DDA‑LFQ, DIA, TMT) and to interpret the **standard data analysis reports** provided by the core facility.
+This repository is intended as a **customer-facing tutorial** to understand proteomics acquisition concepts (DDA‑LFQ, DIA, TMT) and to interpret the **standard data analysis reports** provided by this core facility.
 
 ### Workflows (conceptual introductions + figures)
 
 - **TMT (isobaric labeling)**: `TMT/README.md`  
-  - Explains experimental design, TMT chemistry, MS1/MS2 logic, missing values vs background, ratio compression, and practical implications.  
+  - Explains experimental design, Tandem Mass Tag (TMT) labeling, MS1/MS2 logic, missing values vs background, ratio compression, and practical implications.  
   - Figures are in `TMT/images/`.
 - **DDA‑LFQ (label‑free, data-dependent acquisition)**: `DDA_LFQ/README.md`  
   - Explains DDA selection, MS1‑based quantification, missing values, and common protein quantification strategies (raw intensity, iBAQ, razor intensity, MaxLFQ, Top3).  

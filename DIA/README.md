@@ -2,7 +2,20 @@
 
 ## From samples to quantitative protein profiles (with systematic MS2 sampling)
 
-In **DIA**, each sample is still measured in its own LC‑MS run, but the key difference is *how MS2 spectra are acquired*: instead of choosing a few precursors (as in DDA), the instrument fragments **everything in a predefined m/z scheme**. This makes DIA highly reproducible and typically reduces missing values, but it produces **complex, mixed MS2 spectra** that require dedicated computational analysis.
+In **DIA**, each sample is still measured in its own LC‑MS/MS run, but the key difference is *how MS2 spectra are acquired*: instead of choosing a subset of precursors based on their intensity (as in DDA), the instrument fragments **everything in a predefined m/z scheme**. This makes DIA highly reproducible, more sensitive, comprehensive and typically reduces missing values, but it produces **complex, mixed MS2 spectra** that require dedicated computational analysis.
+
+## Contents
+
+1. [Workflow overview](#workflow-overview)
+2. [Experimental design](#experimental-design)
+3. [Protein preparation and enzymatic digestion](#protein-preparation-and-enzymatic-digestion)
+4. [Liquid chromatography and mass spectrometry acquisition](#liquidchromatography-and-massspectrometry-acquisition)
+5. [DIA: systematic fragmentation across m/z windows](#dia-systematic-fragmentation-across-mz-windows)
+6. [How DIA turns complex MS2 data into peptide quantities](#how-dia-turns-complex-ms2-data-into-peptide-quantities)
+7. [Missing values, interference and why DIA is often more complete](#missing-values-interference-and-why-dia-is-often-more-complete)
+8. [Practical implications for data interpretation](#practical-implications-for-data-interpretation)
+
+---
 
 ## Workflow overview
 
@@ -10,7 +23,7 @@ In **DIA**, each sample is still measured in its own LC‑MS run, but the key di
 | :---- |
 | Complete DIA workflow overview: systematic windowed fragmentation and peptide‑centric quantification |
 
-This documentation uses the same example design throughout (**9 samples** = **3 biological conditions** × **3 biological replicates**). In DIA, these 9 samples are **measured in 9 separate LC‑MS runs**, but MS2 acquisition is **systematic** (windowed) rather than precursor‑selected, which typically improves completeness across samples. Downstream analysis builds a (predicted) **spectral library from the FASTA database**, extracts fragment‑ion chromatograms, and reports a protein × sample matrix (often as a **MaxLFQ‑style** protein quantity) with strong run‑to‑run consistency.
+This documentation uses the same example design throughout (**9 samples** = **3 biological conditions** × **3 biological replicates**). In DIA, these 9 samples are **measured in 9 separate LC‑MS runs**, but MS2 acquisition is **systematic** (windowed) rather than precursor‑dependent, which typically improves completeness across samples. Downstream analysis builds a (predicted) **spectral library from the FASTA database**, extracts fragment‑ion chromatograms, and reports a protein × sample matrix (often as a **MaxLFQ‑style** protein quantity) with strong run‑to‑run consistency.
 
 ## Experimental design
 
@@ -28,7 +41,7 @@ The goal is again to ensure that **biology, not run order**, explains the differ
 
 ## Protein preparation and enzymatic digestion
 
-Samples are processed into peptides using standard bottom‑up proteomics steps: protein solubilization/linearisation, reduction of disulphide bridges (commonly DTT), alkylation of cysteines (commonly iodoacetamide; +57.021 Da carbamidomethyl), and enzymatic digestion. **Trypsin** is frequently used because it yields peptides that ionise well and fragment predictably (Figure 2).
+When the samples arrive, proteins are processed using the **SP3 bead-based clean-up workflow** (Hughes lab), which efficiently removes contaminants such as detergents and salts. Proteins are reduced with Tris(2-carboxyethyl)phosphine (TCEP) and alkylated with chloroacetamide, preventing re‑formation of disulphide bridges and introducing a uniform **+57.021 Da carbamidomethyl** modification on cysteines. The proteins are then digested into peptides (typically with **trypsin**, cleaving after lysine and arginine), generating peptides in a mass range that ionises efficiently and yields predictable MS/MS fragmentation patterns (Figure 2).
 
 | <img src="images/digestion.png" width="50%"> |
 | :---- |
@@ -36,7 +49,7 @@ Samples are processed into peptides using standard bottom‑up proteomics steps:
 
 ## Liquid‑chromatography and mass‑spectrometry acquisition
 
-Each digested sample is injected onto a nano‑flow C18 column connected to the mass spectrometer inlet (Figure 3). Peptides separate over the gradient and elute at characteristic retention times, forming chromatographic peaks (Figure 4).
+Each digested sample is injected onto a nano‑flow C18 column coupled to the mass spectrometer inlet (Figure 3). Peptides are separated across the gradient and elute at characteristic retention times, forming chromatographic peaks (Figure 4).
 
 | <img src="images/mass_spectrometer.png" width="50%"> |
 | :---- |
@@ -44,7 +57,7 @@ Each digested sample is injected onto a nano‑flow C18 column connected to the 
 
 | <img src="images/chromatogram.png"> |
 | :---- |
-| Figure 4: HPLC chromatogram with a specific peptide eluting from the C18 column at retention time x. |
+| Figure 4: Total ion chromatogram with a specific peptide eluting from the C18 column at retention time x. |
 
 ## DIA: systematic fragmentation across m/z windows
 
@@ -54,7 +67,7 @@ As in other LC‑MS workflows, the instrument records an **MS1** survey scan (Fi
 | :---- |
 | Figure 5: MS1 scan (survey scan) at retention time x |
 
-In **data‑independent acquisition**, the instrument then cycles through a set of **predefined isolation windows** that collectively cover a broad precursor m/z range. Within each window, *all* precursors are co‑isolated and fragmented, producing an **MS2 spectrum** (Figure 6) that contains fragment ions from **multiple peptides at once**.
+In **data‑independent acquisition**, the instrument then cycles through a set of **predefined isolation windows** that collectively cover a broad precursor m/z range. Within each window, *all* precursors are co‑isolated and co-fragmented, producing an **MS2 spectrum** (Figure 6) that contains fragment ions from **multiple peptides at once**.
 
 | <img src="images/MS2_spectrum.png" width=60%> |
 | :---- |
@@ -62,23 +75,23 @@ In **data‑independent acquisition**, the instrument then cycles through a set 
 
 This is the core trade‑off of DIA:
 
-- **Pro**: every cycle measures the same m/z windows, so peptides are sampled more consistently across runs.
+- **Pro**: every cycle measures the same m/z windows, so peptides are sampled more consistently across runs. Fragment ion information is also systematically collected across the retention time—alongside precursor ion data—enabling more comprehensive and consistent quantification of peptides.
 - **Con**: MS2 spectra are more complex, so peptide identification/quantification relies on computational deconvolution and scoring.
 
 ## How DIA turns complex MS2 data into peptide quantities
 
-DIA data analysis is often described as “peptide‑centric”:
+DIA data analysis is often done in a “peptide‑centric” way:
 
 1. **Define expected peptides and fragments**  
    This commonly starts from the protein **FASTA database**: expected peptides are generated in silico, and fragment ions / retention time can be **predicted** to build a **spectral library**. (Some workflows use measured libraries, but FASTA‑based libraries are a very common and practical starting point.)
-2. **Extract fragment‑ion chromatograms**  
+2. **Extract fragment‑ion and precursor‑ion chromatograms**  
    For each candidate peptide, the software extracts chromatographic traces for a set of characteristic fragment ions across retention time.
 3. **Score evidence and control false discovery**  
    The consistency of fragment patterns, co‑elution, mass accuracy and retention time is scored; results are filtered to control FDR at peptide and protein levels.
 4. **Summarize to proteins**  
    Multiple peptide quantities are aggregated to yield a protein‑level abundance matrix.
 
-In practice, DIA quantification often relies more on **MS2 fragment‑ion peak areas** than on MS1 features, because fragment‑ion traces can be more selective when many precursors overlap.
+In practice, DIA quantification often relies more on **MS2 fragment‑ion peak areas** than on MS1 features, because fragment‑ion traces can be more robust when many precursors overlap.
 
 ### Protein quantities in DIA
 
@@ -103,5 +116,5 @@ For customers, a few practical takeaways are especially important:
 
 - **Reproducibility is a major strength**: DIA often yields a more complete protein matrix across many samples, which simplifies downstream statistics.
 - **Method relies on computation**: results depend on robust scoring/FDR control and on library quality (if using a spectral library).
-- **Selectivity comes from fragments**: quantification is frequently performed on carefully chosen MS2 fragment ions to reduce interference.
+- **Selectivity comes from fragments**: quantification is typically performed using automatically selected sets of MS2 fragment ions to minimize interference.
 - **Between‑run normalization still applies**: DIA is label‑free across separate runs, so global differences between samples are expected and must be normalized appropriately.

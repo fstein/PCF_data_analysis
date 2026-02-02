@@ -2,17 +2,17 @@
 
 ## A Gentle Walk‑through of the Statistical Pipeline
 
-*This document accompanies the quantitative data you receive from the Proteomics Core Facility. It explains what the analysis script does, what files you receive, and how to interpret the key plots and CSV tables.*
+*This document accompanies the quantitative data you receive from the Proteomics Core Facility (PCF) at the European Molecular Biology Laboratory (EMBL). It explains what the analysis script does, what files you receive, and how to interpret the key plots and CSV tables.*
 
 ---
 
 ## Quick start
 
-All outputs are written into the folder **`data_analysis_results_V1/`**.
+All outputs are written into the folder **`data_analysis_results_V[version number]/`** (for example, `data_analysis_results_V1/`, `data_analysis_results_V2/`, etc.). In this document we will use **V1**, as this is the first version you receive.
 
 A practical order to look at results:
 
-- **QC first**
+- **Quality Control (QC) first**
   - `Identification_CountOverview_V1.pdf` (Figure 1)
   - `Identification_MissingValueOverview_V1.pdf` (Figure 3)
   - `Normalization_overview_V1.pdf` and `Normalization_overview_ratios_V1.pdf` (Figures 4–5)
@@ -76,13 +76,14 @@ Figure 1 shows how many proteins remain after filtering (e.g. `Razor.Peptides >=
 
 **How to read Figure 1**
 
-- The plot is a **bar chart**: each bar corresponds to one sample (one TMT channel), and the bar height is the **number of quantified proteins after filtering** (e.g. `Razor.Peptides >= 2`).
-- In a TMT experiment, all samples are measured together. Therefore it is expected to see the same number of proteins across channels.
+- The plot is a **bar chart**: each bar corresponds to one sample (one TMT channel), and the bar height is the **number of quantified proteins after filtering** (e.g. `Razor.Peptides >= 2` and no contaminants).
+- In a TMT experiment, all samples are measured together, meaning that peptide identification relies on the same fragment information across all samples/channels. Therefore it is expected to see the same number of proteins across channels.
+- It is also worth checking whether the **absolute number of quantified proteins** is biologically/technically plausible for your sample type and workflow (e.g. is it unusually high/low compared to similar experiments?).
 - Large differences can indicate issues (sample mix-up, channel failure, very unbalanced sample load, or metadata mismatch).
 
 ### UpSet plot (presence/absence across samples)
 
-Figure 2 summarizes which proteins are present across samples.
+Figure 2 summarizes which proteins are present and shared across samples.
 
 | <img src="data_analysis_results_V1/Identification_UpSet_plot_V1.png" width="80%"> |
 | :---- |
@@ -91,7 +92,7 @@ Figure 2 summarizes which proteins are present across samples.
 **How to read Figure 2**
 
 - Each row corresponds to a sample.
-- A vertical set of filled circles indicates a specific combination of samples.
+- A vertical set of filled circles indicates in which subset of samples this combination of proteins was identified.
 - The bar above that combination shows the number of proteins present exactly in that combination.
 
 In this example, all **8149 proteins** have quantitative values for all 9 samples. This is totally expected for a TMT experiment, where multiplexing enables highly complete datasets across all channels. The UpSet plot is therefore mainly for completeness here — its real diagnostic value comes when analyzing LFQ datasets, where missing values and incomplete overlaps between samples are common.
@@ -126,11 +127,19 @@ Intensities are log2 transformed (after creating an expression set) because log2
 
 ### Cleaning technical batch effects
 
-Subtle differences in chromatography or instrument performance can bias intensities. The script applies `removeBatchEffect()` (limma) using replicate or MS run information as a batch covariate.
+In a single TMT experiment (one plex measured together), **LC‑MS acquisition effects (chromatography/instrument drift) are shared across all channels** and are therefore much less of a concern than in label‑free workflows. However, batch effects can still arise when **multiple TMT plexes are combined** in one analysis (because each plex is acquired in a separate LC‑MS run), and systematic shifts can also reflect **upstream biological/study‑design confounders**, for example:
+
+- different **TMT plexes / acquisition runs** (e.g. plex 1 vs plex 2),
+- different **offline fractionation batches** (if fractionation is done separately per plex),
+- differences in **starting material amount** / protein yield,
+- different **cell growth batches**, passages, or culture conditions (e.g. different days of treatment),
+- other **sample collection/handling batches** on the user side (e.g. different harvest days).
+
+To reduce such confounding, the script applies `removeBatchEffect()` (limma) using replicate / batch information as a covariate (when available), so that downstream comparisons focus more on biological condition effects.
 
 ### Variance‑stabilising normalization (VSN)
 
-Reporter intensities span orders of magnitude. Variance stabilising normalization (VSN) is applied to the untransformed, batch-corrected intensity values (after batch effect removal), as the VSN method already performs an internal log transformation. This procedure rescales the data so that variance is less dependent on signal size and sample distributions become comparable.
+Reporter intensities span orders of magnitude. Variance stabilising normalization (VSN) is applied to the batch-corrected intensity values (after batch effect removal). *(Side note for advanced users: the standard VSN workflow includes a log2-like transformation internally, so the input should be on the original intensity scale—not already log2-transformed.)* This procedure rescales the data so that variance is less dependent on signal size and sample distributions become comparable.
 
 ### Imputation
 
@@ -143,6 +152,8 @@ For intuitive visualization, the script divides each sample’s normalized inten
 ---
 
 ## Inspecting the effects of data transformation
+
+Because normalization, batch correction, and other processing steps can substantially change intensity distributions, it is important to track **what each transformation did to your data** (and whether it behaved as expected). The analysis therefore provides a set of diagnostic plots that visualize sample distributions and structure across the key transformation steps.
 
 ### Boxplots of intensities across steps
 
@@ -203,7 +214,7 @@ Even in a clean knock-out, TMT often shows **non-zero quantitative values** for 
 
 - **Reporter-ion background**: MS2 reporter ions are measured even when the true peptide signal is absent; low background counts (chemical/electronic noise) create a practical lower bound for ratios.
 - **Isotopic impurities / channel cross-talk**: small amounts of reporter signal can leak into neighboring channels due to isotopic impurity and the very small mass spacing between channels, adding apparent intensity even for truly absent peptides.
-- **Co-isolation interference and ratio compression**: the precursor isolation window can include other peptides that fragment together; their reporter ions add signal and compress true fold-changes toward 1 (toward “less extreme” ratios). This is the classic MS2 isobaric interference/ratio distortion mechanism.
+- **Co-isolation interference and ratio compression**: the precursor isolation window can include other peptides that fragment together; their reporter ions add signal and compress true fold-changes toward 1 (toward “less extreme” ratios). This is the classic MS2 interference/ratio distortion mechanism.
 - **Protein inference / shared peptides**: peptides shared between proteins can be assigned to one protein group (razor peptides). If the KO gene has peptides that are shared with related proteins/isoforms, some signal can remain after protein-level aggregation.
 - **Biological residuals**: some “knock-outs” are incomplete at the protein level (residual expression, stable protein carryover, alternative isoforms), which can produce real signal above background.
 
@@ -213,7 +224,7 @@ Even in a clean knock-out, TMT often shows **non-zero quantitative values** for 
 
 A principal component analysis (PCA) summarizes sample similarity by reducing a high‑dimensional dataset (thousands of proteins) into a few new axes called **principal components (PCs)**.
 
-- **What PCA does**: PCA creates new axes (PC1, PC2, etc.) as combinations of the original protein abundances so that PC1 captures the most variance, PC2 the next most, and so on.
+- **What PCA does**: PCA finds new axes, called principal components (PC1, PC2, etc.), which are combinations of the original protein abundance values. PC1 captures the largest amount of variation in the data, PC2 captures the next largest, and so on. Although there can be up to as many principal components as there are samples or proteins (whichever is smaller), most plots show only the first two (PC1 and PC2), since they usually explain the majority of the variation and are most informative for visualization.
 - **What you see in the plot**: each dot is a sample positioned by its scores on PC1/PC2 (and shown here for several processing layers).
 
 | <img src="data_analysis_results_V1/PCA_analysis_V1.png" width="100%"> |
@@ -228,7 +239,7 @@ A principal component analysis (PCA) summarizes sample similarity by reducing a 
 - Take the **variance explained** in the panel subtitles into account (shown as `PC1: … % var - PC2: … % var`). If PC1/PC2 explain most of the variance (e.g. in the **raw data** panel PC1 explains ~97.7% and PC2 ~1.1%), then the 2D plot is an excellent summary of the dominant structure. If PC1/PC2 explain less, separation may exist in higher PCs and distances in the PC1/PC2 view capture only part of the structure.
 - Because Figure 7 shows PCA **for multiple transformation steps**, you can also follow how the dominant structure changes: ideally, technical variation (batch/replicate effects) is reduced after correction/normalization, while biological separation (condition differences) becomes clearer.
 
-PCAs are also very informative for understanding the overall differences between conditions and give a preview of the magnitude and structure of variation you might expect in subsequent statistical comparisons. Observing how samples separate (or cluster together) in the PCA plot can help anticipate which condition contrasts are likely to show strong biological differences and which might be more subtle later in the analysis.
+PCAs are also very informative for understanding the overall differences between conditions and give a preview of the magnitude and structure of variation you might expect in subsequent statistical comparisons. Observing how samples separate (or cluster together) in the PCA plot can help anticipate which condition contrasts are likely to show strong biological differences and which might be more subtle later in the analysis. Importantly, PCA plots are also useful for detecting outlier samples or identifying unexpected effects, such as technical artifacts or sample mix-ups, which may manifest as samples clustering away from their expected groups. Spotting such issues early can help guide quality control and further data interpretation.
 
 The underlying coordinates are saved in:
 
@@ -253,7 +264,7 @@ The coefficient of variation (CV) summarizes reproducibility across replicates.
 
 ## Differential abundance analysis (limma)
 
-The core test is performed with **limma**, which implements an **empirical Bayes moderated t-test** for each protein and each contrast (e.g. `double_ko - wt`). For more details and practical guidance, see the [limma user guide (PDF)](https://www.bioconductor.org/packages/devel/bioc/vignettes/limma/inst/doc/usersguide.pdf).
+The core test is performed with **limma**, which implements an **empirical Bayes moderated t-test** for each protein and each contrast (e.g. `double_ko - wt`). A **contrast** is simply a *predefined comparison* between two conditions (or, more generally, a linear combination of conditions) that tells limma which group(s) should be compared and in which direction (numerator minus denominator). For more details and practical guidance, see the [limma user guide (PDF)](https://www.bioconductor.org/packages/devel/bioc/vignettes/limma/inst/doc/usersguide.pdf).
 
 In simple terms, limma is like a t-test, but with an important improvement:
 
@@ -288,7 +299,7 @@ The main result table is:
     - **candidate**: FDR ≤ 0.2 (less stringent)
 - Only a subset of proteins is labeled to avoid over-plotting; typically the most significant and/or biologically relevant points are annotated.
 
-**Practical note**: thresholds are a useful guide for prioritization, but don’t be a slave to them — proteins just above a cutoff (or non-significant proteins with strong prior biological evidence) can still be meaningful and worth follow-up.
+**Practical note**: thresholds are a useful guide for prioritization, but don’t be a slave to them — proteins just above a cutoff (or non-significant proteins with strong prior biological evidence) can still be meaningful and worth follow-up. Conversely, if you get *very many* hits, it can be sensible to use **more stringent cutoffs** (e.g. lower FDR and/or higher fold-change) to focus on the strongest effects.
 
 ### Fold-change correlation plot
 
@@ -296,16 +307,16 @@ A ratio-of-ratios comparison can be easier to interpret as a correlation of two 
 
 | <img src="data_analysis_results_V1/Fold_change_correlation_V1.png" width="55%"> |
 | :---- |
-| Figure 10: `Fold_change_correlation_V1.pdf` — correlation of fold-changes from two contrasts. |
+| Figure 10: `Fold_change_correlation_V1.pdf` — correlation of fold-changes from two contrasts (hit annotation is based on the limma analysis for the corresponding ratio-of-ratios contrast). |
 
 | <img src="data_analysis_results_V1/Fold_change_correlation_alt_hit_class_V1.png" width="55%"> |
 | :---- |
-| Figure 11: `Fold_change_correlation_alt_hit_class_V1.pdf` — same plot, colored by hit annotations per comparison. |
+| Figure 11: `Fold_change_correlation_alt_hit_class_V1.pdf` — same plot, but points are colored by the *combined hit class across the two underlying contrasts* (x-axis contrast vs y-axis contrast), e.g. `hit x - hit y` = significant in both contrasts. |
 
 **How to read Figures 10–11**
 
 - Each dot is a protein.
-- The **x-axis** and **y-axis** are log2 fold-changes from two different contrasts.
+- The **x-axis** and **y-axis** are log2 fold-changes from two different contrasts described in the header.
 - **Near the diagonal (x ≈ y)**: proteins change similarly in both contrasts.
 - **Close to the x-axis (y ≈ 0)**: proteins change mainly in the x-axis contrast (little/no change in the y-axis contrast).
 - **Close to the y-axis (x ≈ 0)**: proteins change mainly in the y-axis contrast (little/no change in the x-axis contrast).
@@ -324,7 +335,7 @@ A ratio-of-ratios comparison can be easier to interpret as a correlation of two 
 
 **How to read Figure 12**
 
-- X-axis: **average abundance** (A; typically the mean log-intensity across samples/conditions being compared).
+- X-axis: **average abundance** (A; typically the mean log-intensity of TMT reporter ions for respective proteins across samples/conditions being compared).
 - Y-axis: **log2 fold-change** (M; log2 ratio between the two groups).
 - What to look for:
   - **Centering**: most proteins should be roughly centered around 0 (no systematic global shift).
@@ -344,7 +355,7 @@ In this MA plot, the “average abundance” is based on the **average TMT-deriv
 - **Figure 12** uses the average abundance derived from the **TMT quantification values** used in the statistical model.
 - **Figure 13** uses `Total.Intensity`, which is based on the **total MS1 intensity** for a protein (an MS1-based abundance proxy).
 
-MA plots are also a useful way to check for **mean–variance dependency**: in some assays, low-abundance proteins show higher variance and more extreme apparent fold-changes. For well-behaved TMT datasets this is typically less pronounced than in LFQ, but the plot is still a good QC check.
+MA plots are also a useful way to check for **mean–variance dependency**: in some assays, low-abundance proteins show higher variance and more extreme apparent fold-changes. For TMT datasets this is typically less pronounced than in LFQ, but the plot is still a good QC check.
 
 ### Interpreting significance diagnostics
 
@@ -388,7 +399,7 @@ For a very clear, beginner-friendly explanation with example shapes and what the
 
 ## Heatmaps and clustering
 
-Heatmaps and clustering help move from “which proteins are significant?” to “which proteins behave similarly?”.
+Heatmaps and clustering help move from “which proteins significantly changed?” to “which proteins behave similarly?”.
 
 - **What heatmaps are for**: they visualize a matrix (proteins × conditions) as colors so you can quickly spot shared regulation patterns (e.g. proteins that go up in `single_ko` and down in `double_ko`).
 - **What clustering is for**: it groups proteins with similar patterns into clusters, which often correspond to shared pathways/complexes or coordinated biological programs.
@@ -500,7 +511,7 @@ GO enrichment is performed at two levels:
 - **Differential abundance**: hits/candidates are split by comparison and direction (up/down)
 - **Clustering**: proteins are grouped by cluster
 
-### GO for differential abundance analysis (example: MF)
+### GO for differential abundance analysis (example: Molecular Function (MF))
 
 | <img src="data_analysis_results_V1/GO_enrichment_DE_MF_dotplot_limma_results_V1.png" width="80%"> |
 | :---- |
@@ -540,9 +551,9 @@ This section documents the main `*.csv` tables in `data_analysis_results_V1/`.
 - **Gene**: gene symbol used as primary identifier (extracted from the Fasta file).
 - **Protein.ID**: accession(s), often UniProt (extracted from the Fasta file).
 - **Protein.Description**: description string (extracted from the Fasta file).
-- **Organism**: organism.
+- **Organism**: organism to which protein sequence belongs.
 - **found.in.files / found.in.conditions / found.in.reps**: counts of where the protein was observed.
-- **max.Unique.Peptides / max.Razor.Peptides**: identification evidence.
+- **max.Unique.Peptides / max.Razor.Peptides**: identification evidence as counts of unique/razor peptides per protein.
 - **average.Total.Intensity**: mean abundance proxy (useful for abundance-dependent QC).
 
 **Intensity column blocks (by prefix)**
