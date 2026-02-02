@@ -4,6 +4,21 @@
 
 *This document accompanies the quantitative data you receive from the Proteomics Core Facility (PCF) at the European Molecular Biology Laboratory (EMBL). It explains what the analysis script does, what files you receive, and how to interpret the key plots and CSV tables.*
 
+## Contents
+
+1. [Quick start](#quick-start)
+2. [Experimental setup](#experimental-setup)
+3. [Input files for the data analysis](#input-files-for-the-data-analysis)
+4. [Data analysis](#data-analysis)
+5. [Protein identification overview](#protein-identification-overview)
+6. [Data transformation steps](#data-transformation-steps)
+7. [Inspecting the effects of data transformation](#inspecting-the-effects-of-data-transformation)
+8. [Differential abundance analysis (limma)](#differential-abundance-analysis-limma)
+9. [Heatmaps and clustering](#heatmaps-and-clustering)
+10. [Gene Ontology (GO) enrichment](#gene-ontology-go-enrichment)
+11. [CSV outputs](#csv-outputs)
+12. [Methods and reproducibility](#methods-and-reproducibility)
+
 ---
 
 ## Quick start
