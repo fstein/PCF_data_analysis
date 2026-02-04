@@ -153,7 +153,6 @@ The MS2 has two distinct regions:
 
 - **Peptide backbone fragments (high‑mass side)**: encode the amino‑acid sequence. Database search engines match these ions against an in silico tryptic digest of the reference proteome, assigning a peptide identity with statistical confidence.
 - **Reporter ions (low‑mass side)**: These provide the readout of relative peptide abundance across all multiplexed samples. When a single, labile bond is cleaved (see dashed line in Figure 4), a reporter group is released that appears in a defined low-mass region of the MS2 spectrum—specifically, for **TMT 6-plex and 11-plex**, the reporter ions appear in the **126–131 Da mass range**. (For TMTpro 18‑plex, these reporter ions span **126–134 Da**.) Each isobaric tag produces a reporter ion of a unique mass (with small spacings due to isotopic labeling), allowing simultaneous quantification of all samples. By measuring the intensity (area) of each reporter ion peak in this region, the instrument reports the abundance of the peptide in each sample.
-- **Figure 10 note (schematic)**: The reporter‑ion peaks are **not plotted at the exact TMT masses/spacing**. In this example, nine reporter peaks are shown **grouped into sets of three** to visually represent the three biological replicates per condition; this grouping is for educational clarity and does not reflect the true mass differences between TMT reporter ions.
 
 ---
 
